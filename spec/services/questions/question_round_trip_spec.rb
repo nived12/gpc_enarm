@@ -333,6 +333,17 @@ RSpec.describe "question bank export and import" do
         expect(drafted.reload).to have_attributes(verification_verdict: "flawed", status: "retired")
       end
 
+      it "still moves the case verdict when production no longer has a question the file names" do
+        kase = build_bank
+        rejudge(kase)
+        export
+        kase.update!(verification_verdict: "supported")
+        kase.questions.sole.destroy!
+
+        expect(import_new.payload).to include(second_opinions_synced: 1)
+        expect(kase.reload.verification_verdict).to eq("flawed")
+      end
+
       it "leaves a rationale's verdict alone when production has rewritten that rationale" do
         kase = build_bank
         rejudge(kase)
