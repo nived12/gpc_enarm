@@ -65,8 +65,6 @@ module Questions
       Prompt.new(guideline, recommendations, detail: detail, locale: locale).to_s
     end
 
-
-    # Models wrap JSON in a markdown fence often enough, even when told not to.
     def record(built)
       return if run.nil?
 
