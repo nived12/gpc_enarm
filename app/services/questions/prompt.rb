@@ -111,7 +111,9 @@ module Questions
         en otro momento o situación, una alternativa de segunda línea, o un error frecuente
         de quien estudió el tema de forma incompleta. Nunca una opción absurda, peligrosa o
         que nadie elegiría: un distractor evidente hace inútil el reactivo. Ningún
-        distractor puede ser también correcto según las recomendaciones.
+        distractor puede ser también correcto según las recomendaciones. Sin opciones como
+        "todas las anteriores" o "ninguna de las anteriores": el orden de las opciones cambia
+        en cada examen.
     TEXT
 
     # An unknown detail level falls back to focused rather than failing the call.

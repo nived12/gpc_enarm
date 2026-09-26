@@ -2,13 +2,15 @@ require "rails_helper"
 
 RSpec.describe Questions::CaseGenerator do
   # Long enough to pass CaseBuilder's length floor, the way a real vignette is.
-  STEM = "Paciente masculino de 54 años con diabetes mellitus tipo 2 de 10 años en manejo con " \
-         "metformina e hipertensión arterial de 6 años con losartán, que acude a urgencias por " \
-         "dolor torácico opresivo de 40 minutos de evolución, irradiado a brazo izquierdo y " \
-         "acompañado de diaforesis. Signos vitales: TA 150/90 mmHg, FC 104 lpm, FR 22 rpm, " \
-         "SatO2 94% al aire ambiente, temperatura 36.7 °C. A la exploración, ruidos cardiacos " \
-         "rítmicos sin soplos, campos pulmonares bien ventilados, abdomen blando sin dolor, " \
-         "pulsos periféricos presentes y simétricos, sin edema de miembros inferiores."
+  let(:stem) do
+    "Paciente masculino de 54 años con diabetes mellitus tipo 2 de 10 años en manejo con " \
+      "metformina e hipertensión arterial de 6 años con losartán, que acude a urgencias por " \
+      "dolor torácico opresivo de 40 minutos de evolución, irradiado a brazo izquierdo y " \
+      "acompañado de diaforesis. Signos vitales: TA 150/90 mmHg, FC 104 lpm, FR 22 rpm, " \
+      "SatO2 94% al aire ambiente, temperatura 36.7 °C. A la exploración, ruidos cardiacos " \
+      "rítmicos sin soplos, campos pulmonares bien ventilados, abdomen blando sin dolor, " \
+      "pulsos periféricos presentes y simétricos, sin edema de miembros inferiores."
+  end
 
   let(:guideline) { create(:guideline, year: Date.current.year) }
   let(:section) { create(:guideline_section, guideline: guideline, kind: "recommendation") }
@@ -39,7 +41,7 @@ RSpec.describe Questions::CaseGenerator do
   end
 
   def one_case(*questions)
-    { "cases" => [{ "stem" => STEM, "questions" => questions }] }
+    { "cases" => [{ "stem" => stem, "questions" => questions }] }
   end
 
   it "refuses a guideline with no actionable recommendations" do

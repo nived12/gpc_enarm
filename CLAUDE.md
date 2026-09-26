@@ -142,7 +142,12 @@ lets through.
 A case qualifies when the verifier supported it and nobody withdrew it (`flagged`,
 `retired`). The exam builder reads `status_published` and nothing else; never point a
 student-facing query at `publishable` or at drafts. After a verification run, run
-`questions:publish`.
+`questions:publish`. A second opinion can only take a live case off the bank, through
+`ClinicalCase#status_after_verdict`; the verifier and the importer's verdict sync both
+use it. Besides answering blind, the verifier names item-writing defects
+(`Questions::Verifier::FLAWS`); a case it supports but finds one in is `flawed`, kept
+off the bank and queued for review with the defect named. A new defect found by reading
+cases goes in both places: a rule in `Questions::Prompt` and a code in `FLAWS`.
 
 **Difficulty uses the exam's own vocabulary** — `low`/`medium`/`high`, rendered Baja /
 Media / Alta — never a competitor's Interno/Residente/Adscrito. Score is a plain

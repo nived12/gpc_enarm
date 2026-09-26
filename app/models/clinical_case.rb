@@ -100,6 +100,14 @@ class ClinicalCase < ApplicationRecord
     verdict_supported? && WITHDRAWN.exclude?(status)
   end
 
+  # The status a new second opinion leaves the case in. A live case the verdict no longer
+  # supports comes off the bank at once; putting one on is Questions::Publisher's job
+  # alone, so a supported draft stays a draft here. The verifier and the importer's
+  # verdict sync both go through this.
+  def status_after_verdict(verdict)
+    status_published? && verdict != "supported" ? "draft" : status
+  end
+
   private
 
   def published_only_when_supported

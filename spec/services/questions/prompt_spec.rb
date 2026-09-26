@@ -69,9 +69,10 @@ RSpec.describe Questions::Prompt do
     # From the first 500-call chunk: an answer right for another patient, specialist
     # detail and administrative trivia all passed a verifier that only reads the citation.
     it "asks for the best choice for this patient, at a general physician's level" do
-      expect(prompt).to include(
+      expect(prompt.squish).to include(
         "la mejor conducta para ESTE paciente", "lo que un médico general debe saber y decidir",
-        "detalles de subespecialidad", "datos\n  administrativos", "Ningún\n  distractor puede ser también correcto"
+        "detalles de subespecialidad", "datos administrativos", "Ningún distractor puede ser también correcto",
+        "ninguna de las anteriores"
       )
     end
 

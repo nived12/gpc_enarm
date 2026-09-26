@@ -124,7 +124,7 @@ namespace :questions do
       started_at: Time.current, notes: "recheck"
     )
     tally = Hash.new(0)
-    ClinicalCase.recheckable_before(before).order(:id).limit((args[:count] || 10).to_i).each do |kase|
+    ClinicalCase.recheckable_before(before).order(:verified_at, :id).limit((args[:count] || 10).to_i).each do |kase|
       result = Questions::Verifier.call(kase, run: run)
       state = result.success? ? result.payload[:verdict] : result.errors.full_messages.first
       tally[state] += 1

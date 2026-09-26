@@ -394,7 +394,7 @@ en:
         supported: "Another model answered every question from the cited recommendation alone and chose the same option."
         ambiguous: "Another model could not decide at least one question from the cited recommendation. Check whether the question asks more than the recommendation says."
         unsupported: "Another model chose a different option on at least one question. Check the answer marked correct."
-        flawed: "Another model chose the same answer, but found a defect in at least one question that makes it easier than the real exam. Fix it or retire the case."
+        flawed: "Another model chose the same answer from the recommendation, but found a defect in at least one question: an answer that is not the best for this patient, another equally valid option, a topic beyond a general physician, or something that makes it easier than the real exam. Read the note, fix it or retire the case."
         unverified: "This case has not been through the second opinion yet."
   question_reports:
     reasons:

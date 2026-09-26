@@ -396,7 +396,7 @@ es:
         supported: "Otro modelo respondió cada pregunta usando solo la recomendación citada y eligió la misma opción."
         ambiguous: "Otro modelo no pudo decidir al menos una pregunta con la recomendación citada. Revisa si la pregunta pide más de lo que la recomendación dice."
         unsupported: "Otro modelo eligió una opción distinta en al menos una pregunta. Revisa la respuesta marcada como correcta."
-        flawed: "Otro modelo eligió la misma respuesta, pero encontró en al menos una pregunta un defecto que la hace más fácil que el examen real. Corrígela o retira el caso."
+        flawed: "Otro modelo eligió la misma respuesta con la recomendación, pero encontró un defecto en al menos una pregunta: una respuesta que no es la mejor para este paciente, otra opción igual de válida, un tema ajeno al médico general, o algo que la hace más fácil que el examen real. Lee la nota, corrígela o retira el caso."
         unverified: "Este caso todavía no pasa por la segunda opinión."
   question_reports:
     reasons:

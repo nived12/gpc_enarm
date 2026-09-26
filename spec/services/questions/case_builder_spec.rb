@@ -2,13 +2,15 @@ require "rails_helper"
 
 RSpec.describe Questions::CaseBuilder do
   # Long enough to pass the length floor, the way a real vignette is.
-  STEM = "Paciente masculino de 54 años con diabetes mellitus tipo 2 de 10 años en manejo con " \
-         "metformina e hipertensión arterial de 6 años con losartán, que acude a urgencias por " \
-         "dolor torácico opresivo de 40 minutos de evolución, irradiado a brazo izquierdo y " \
-         "acompañado de diaforesis. Signos vitales: TA 150/90 mmHg, FC 104 lpm, FR 22 rpm, " \
-         "SatO2 94% al aire ambiente, temperatura 36.7 °C. A la exploración, ruidos cardiacos " \
-         "rítmicos sin soplos, campos pulmonares bien ventilados, abdomen blando sin dolor, " \
-         "pulsos periféricos presentes y simétricos, sin edema de miembros inferiores."
+  let(:stem) do
+    "Paciente masculino de 54 años con diabetes mellitus tipo 2 de 10 años en manejo con " \
+      "metformina e hipertensión arterial de 6 años con losartán, que acude a urgencias por " \
+      "dolor torácico opresivo de 40 minutos de evolución, irradiado a brazo izquierdo y " \
+      "acompañado de diaforesis. Signos vitales: TA 150/90 mmHg, FC 104 lpm, FR 22 rpm, " \
+      "SatO2 94% al aire ambiente, temperatura 36.7 °C. A la exploración, ruidos cardiacos " \
+      "rítmicos sin soplos, campos pulmonares bien ventilados, abdomen blando sin dolor, " \
+      "pulsos periféricos presentes y simétricos, sin edema de miembros inferiores."
+  end
 
   let(:guideline) { create(:guideline) }
   let(:section) { create(:guideline_section, guideline: guideline, kind: "recommendation") }
@@ -29,7 +31,7 @@ RSpec.describe Questions::CaseBuilder do
   end
 
   def one_case(*questions)
-    { "cases" => [{ "stem" => STEM, "questions" => questions }] }
+    { "cases" => [{ "stem" => stem, "questions" => questions }] }
   end
 
   def build_from(payload, recommendations: [recommendation], **options)
@@ -40,7 +42,7 @@ RSpec.describe Questions::CaseBuilder do
     kase = build_from(one_case(question, question))[:cases].sole
 
     expect(kase).to be_persisted
-    expect(kase).to have_attributes(stem: STEM, locale: "es", source: "gpc_generated", guideline: guideline)
+    expect(kase).to have_attributes(stem: stem, locale: "es", source: "gpc_generated", guideline: guideline)
     expect(kase.questions.size).to eq(2)
     expect(kase.questions.first.answer_options.size).to eq(4)
     expect(kase.questions.first.recommendation).to eq(recommendation)
@@ -70,7 +72,7 @@ RSpec.describe Questions::CaseBuilder do
   describe "the setting the model names" do
     def with_setting(code, count: 1)
       { "cases" => Array.new(count) do |i|
-        { "stem" => "#{STEM} Caso #{i}.", "setting" => code, "questions" => [question, question] }
+        { "stem" => "#{stem} Caso #{i}.", "setting" => code, "questions" => [question, question] }
       end }
     end
 
@@ -156,10 +158,10 @@ RSpec.describe Questions::CaseBuilder do
       end
 
       it "keeps a stem that only quotes a short question or asks mid-sentence" do
-        stem = "#{STEM} La esposa pregunta: ¿es grave? Refiere que nunca había tenido dolor así."
+        quoting = "#{stem} La esposa pregunta: ¿es grave? Refiere que nunca había tenido dolor así."
         short = question(text: "¿Diagnóstico?")
 
-        expect(build_from(case_with_stem(stem, short, short))[:cases].size).to eq(1)
+        expect(build_from(case_with_stem(quoting, short, short))[:cases].size).to eq(1)
       end
     end
 
@@ -173,8 +175,8 @@ RSpec.describe Questions::CaseBuilder do
     # The validation batch's short cases (52–90 words) were the thin ones; the real
     # exam's are 150–200.
     it "rejects the whole case when the vignette is shorter than the floor" do
-      stem = STEM.split.first(described_class::MIN_STEM_WORDS - 1).join(" ")
-      built = build_from({ "cases" => [{ "stem" => stem, "questions" => [question, question] }] })
+      short_stem = stem.split.first(described_class::MIN_STEM_WORDS - 1).join(" ")
+      built = build_from({ "cases" => [{ "stem" => short_stem, "questions" => [question, question] }] })
 
       expect(built).to eq(cases: [], rejected: 2, reasons: { "stem_too_short" => 2 })
     end

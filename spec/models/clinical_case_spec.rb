@@ -1,6 +1,26 @@
 require "rails_helper"
 
 RSpec.describe ClinicalCase do
+  describe ".in_review_queue" do
+    it "holds cases a second opinion found flawed, alongside disputed and unread ones" do
+      flawed = create(:clinical_case, verification_verdict: "flawed")
+      unread = create(:clinical_case, verification_verdict: nil)
+      create(:clinical_case, verification_verdict: "supported")
+      create(:clinical_case, verification_verdict: "flawed", status: "retired")
+
+      expect(described_class.in_review_queue).to contain_exactly(flawed, unread)
+    end
+  end
+
+  describe "#status_after_verdict" do
+    it "takes a live case off the bank when the verdict stops supporting it, and nothing else" do
+      expect(build(:clinical_case, status: "published").status_after_verdict("flawed")).to eq("draft")
+      expect(build(:clinical_case, status: "published").status_after_verdict("supported")).to eq("published")
+      expect(build(:clinical_case, status: "draft").status_after_verdict("supported")).to eq("draft")
+      expect(build(:clinical_case, status: "retired").status_after_verdict("flawed")).to eq("retired")
+    end
+  end
+
   describe ".recheckable_before" do
     it "reads supported and flawed cases verified before the time, never retired ones or later ones" do
       cutoff = Time.zone.parse("2026-09-26 02:00")

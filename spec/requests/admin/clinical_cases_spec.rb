@@ -48,6 +48,18 @@ RSpec.describe "Admin review queue", type: :request do
       end
     end
 
+    it "files a case the second opinion found flawed under disputed, with its note" do
+      flawed = create(
+        :clinical_case, verification_verdict: "flawed", stem: "Caso con defectos.",
+        verification_notes: "1. otra opción también es correcta."
+      )
+
+      get admin_clinical_cases_path(queue: "disputed")
+
+      expect(response.body).to include(flawed.stem, disputed.stem)
+      expect(response.body).not_to include(unverified.stem)
+    end
+
     it "says so when a queue is empty" do
       ClinicalCase.status_retired.update_all(status: "draft")
 

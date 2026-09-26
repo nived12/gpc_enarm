@@ -288,71 +288,93 @@ RSpec.describe "question bank export and import" do
       expect(kase.questions.sole.answer_options.first.text).to eq("ECG de 12 derivaciones")
     end
 
-    describe "a newer second opinion on a case the database already has" do
-      let(:judged_at) { Time.zone.parse("2026-09-26 02:00") }
+    describe "a second opinion on a case the database already has" do
+      let(:earlier) { Time.zone.parse("2026-09-25 02:00") }
+      let(:later) { Time.zone.parse("2026-09-26 02:00") }
 
-      def rejudge(kase)
-        kase.update!(
-          verification_verdict: "flawed", verified_at: judged_at,
-          verification_notes: "1. repite otra pregunta del caso."
-        )
-        kase.questions.sole.answer_options.second.update!(rationale_verdict: "sound", rationale_note: nil)
+      def judge(kase, verdict:, at:, rationale_verdict: "sound")
+        kase.update!(verification_verdict: verdict, verified_at: at, verification_notes: "Nota #{verdict}.")
+        kase.questions.sole.answer_options.second.update!(rationale_verdict: rationale_verdict, rationale_note: nil)
       end
 
-      it "takes a live case off the bank, says why, and brings the rationale verdicts along" do
+      it "takes a live case off the bank when the file's opinion is newer, and says why" do
         kase = build_bank
-        rejudge(kase)
+        judge(kase, verdict: "flawed", at: later)
         export
-        kase.update!(verification_verdict: "supported", verification_notes: nil, status: "published")
-        kase.questions.sole.answer_options.second.update!(rationale_verdict: "overstated")
+        judge(kase, verdict: "supported", at: earlier, rationale_verdict: "overstated")
+        kase.update!(status: "published")
 
         result = import_new
 
         expect(result.payload).to include(cases_skipped: 1, second_opinions_synced: 1)
         expect(kase.reload).to have_attributes(
-          verification_verdict: "flawed", status: "draft", verified_at: judged_at,
-          verification_notes: "1. repite otra pregunta del caso."
+          verification_verdict: "flawed", status: "draft", verified_at: later, verification_notes: "Nota flawed."
         )
         expect(kase.questions.sole.answer_options.second.rationale_verdict).to eq("sound")
       end
 
+      # A file exported from a database that is behind must not roll production back.
+      it "keeps production's verdict when the file's is older, or the file's case was never judged" do
+        kase = build_bank
+        judge(kase, verdict: "flawed", at: earlier)
+        export
+        judge(kase, verdict: "supported", at: later)
+
+        import_new
+        expect(kase.reload).to have_attributes(verification_verdict: "supported", verified_at: later)
+
+        judge(kase, verdict: nil, at: nil)
+        export
+        judge(kase, verdict: "supported", at: later)
+
+        import_new
+        expect(kase.reload.verification_verdict).to eq("supported")
+      end
+
       it "never puts a case on the bank, nor moves one a person withdrew" do
-        drafted = build_bank
-        drafted.update!(verification_verdict: "supported")
+        kase = build_bank
+        judge(kase, verdict: "supported", at: later)
         export
-        drafted.update!(verification_verdict: "flawed")
+        judge(kase, verdict: "flawed", at: earlier)
 
         import_new
-        expect(drafted.reload).to have_attributes(verification_verdict: "supported", status: "draft")
+        expect(kase.reload).to have_attributes(verification_verdict: "supported", status: "draft")
 
-        rejudge(drafted)
+        judge(kase, verdict: "flawed", at: later + 1.hour)
         export
-        drafted.update!(verification_verdict: "supported", status: "retired")
+        judge(kase, verdict: "supported", at: later)
+        kase.update!(status: "retired")
 
         import_new
-        expect(drafted.reload).to have_attributes(verification_verdict: "flawed", status: "retired")
+        expect(kase.reload).to have_attributes(verification_verdict: "flawed", status: "retired")
       end
 
       it "still moves the case verdict when production no longer has a question the file names" do
         kase = build_bank
-        rejudge(kase)
+        judge(kase, verdict: "flawed", at: later)
         export
-        kase.update!(verification_verdict: "supported")
+        judge(kase, verdict: "supported", at: earlier)
         kase.questions.sole.destroy!
 
         expect(import_new.payload).to include(second_opinions_synced: 1)
         expect(kase.reload.verification_verdict).to eq("flawed")
       end
 
-      it "leaves a rationale's verdict alone when production has rewritten that rationale" do
+      it "leaves a rationale's verdict alone when production rewrote that rationale, or the file has none" do
         kase = build_bank
-        rejudge(kase)
+        judge(kase, verdict: "supported", at: earlier, rationale_verdict: nil)
         export
         option = kase.questions.sole.answer_options.second
-        option.update!(rationale: "Corregida en producción.", rationale_verdict: "overstated")
+        option.update!(rationale_verdict: "overstated")
 
         import_new
+        expect(option.reload.rationale_verdict).to eq("overstated")
 
+        judge(kase, verdict: "supported", at: earlier, rationale_verdict: "sound")
+        export
+        option.reload.update!(rationale: "Corregida en producción.", rationale_verdict: "overstated")
+
+        import_new
         expect(option.reload).to have_attributes(rationale: "Corregida en producción.", rationale_verdict: "overstated")
       end
     end

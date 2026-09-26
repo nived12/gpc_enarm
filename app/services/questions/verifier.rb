@@ -136,16 +136,10 @@ module Questions
       verdict = worst(verdicts)
 
       clinical_case.update!(
-        verification_verdict: verdict, verified_at: Time.current, status: status_after(verdict),
+        verification_verdict: verdict, verified_at: Time.current, status: clinical_case.status_after_verdict(verdict),
         verification_notes: verdicts.map(&:last).compact_blank.join("\n").presence
       )
       verdict
-    end
-
-    # A live case the verifier no longer supports comes off the bank at once. Publishing
-    # again is Questions::Publisher's job, never this one's.
-    def status_after(verdict)
-      clinical_case.status_published? && verdict != "supported" ? "draft" : clinical_case.status
     end
 
     # Silence from the second opinion is not assent: a verifier that answered two of a

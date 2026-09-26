@@ -93,12 +93,15 @@ module Questions
     # decided there. The second opinion is a model's, rerun here as the verifier learns
     # (questions:recheck), so it moves on: the case's verdict and notes, and each
     # rationale's verdict — only while production's rationale is the text that was judged.
-    # It may take a live case off the bank, never put one on; publishing stays with
-    # Questions::Publisher. True when anything changed.
+    # Only a later judgement moves the case's verdict, so a file exported from a database
+    # that is behind, or where the case was never judged, cannot roll production back. It
+    # may take a live case off the bank (ClinicalCase#status_after_verdict); a supported
+    # draft waits for the next questions:publish. True when anything changed.
     def sync_second_opinion(kase, attributes, questions)
-      verdict = attributes.slice("verification_verdict", "verification_notes", "verified_at")
-      live = kase.status_published? && verdict["verification_verdict"] == "supported"
-      kase.assign_attributes(verdict.merge(status: kase.status_published? && !live ? "draft" : kase.status))
+      if newer_opinion?(kase, attributes["verified_at"])
+        verdict = attributes.slice("verification_verdict", "verification_notes", "verified_at")
+        kase.assign_attributes(verdict.merge(status: kase.status_after_verdict(verdict["verification_verdict"])))
+      end
       options = rationale_verdicts(kase, questions)
       return false unless kase.changed? || options.any?(&:changed?)
 
@@ -109,12 +112,20 @@ module Questions
       true
     end
 
+    def newer_opinion?(kase, judged_at)
+      return false if judged_at.blank?
+
+      kase.verified_at.nil? || Time.zone.parse(judged_at.to_s) > kase.verified_at
+    end
+
+    # Options carry no judging time, so a file only brings a verdict it has, never an
+    # empty one, and only for the rationale text it judged.
     def rationale_verdicts(kase, questions)
       Array(questions).flat_map do |question_attributes|
         question = kase.questions.find { |candidate| candidate.position == question_attributes["position"] }
         Array(question_attributes["options"]).filter_map do |attributes|
           option = question&.answer_options&.find { |candidate| candidate.position == attributes["position"] }
-          next if option.nil? || option.rationale != attributes["rationale"]
+          next if option.nil? || option.rationale != attributes["rationale"] || attributes["rationale_verdict"].nil?
 
           option.tap { |judged| judged.assign_attributes(attributes.slice("rationale_verdict", "rationale_note")) }
         end
