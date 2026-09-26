@@ -343,6 +343,10 @@ es:
       repeats_question: "repite otra pregunta del caso"
       implausible_distractor: "un distractor que nadie elegiría"
       giveaway_wording: "el enunciado o la forma de una opción delata la respuesta"
+      wrong_for_this_patient: "la conducta marcada no es la mejor para este paciente"
+      another_option_valid: "otra opción también es correcta"
+      beyond_general_practice: "detalle de subespecialidad, fuera de lo que se espera de un médico general"
+      administrative_trivia: "dato administrativo, no una decisión clínica"
     question_count:
       one: "1 pregunta"
       other: "%{count} preguntas"

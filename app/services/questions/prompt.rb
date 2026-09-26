@@ -76,8 +76,25 @@ module Questions
     # second question about a hypothetical other patient, two questions asking the same
     # thing, and distractors nobody would choose. Each makes the item easier than the real
     # exam, and the point is passing the real exam.
+    #
+    # The first 500-call chunk (2026-09-25) added three more, all invisible to a verifier
+    # that only asks whether the recommendation backs the option: an answer right for a
+    # different patient (repeat the ultrasound in weeks, for a vasa previa that is
+    # bleeding), specialist detail (the irrigation solution for corneal surgery), and
+    # administrative trivia (who instils the surfactant). The exam tests a general
+    # physician's decisions.
     QUESTION_INSTRUCTIONS = <<~TEXT.strip
       Cada pregunta:
+      - La opción correcta es la mejor conducta para ESTE paciente tal como lo describe la
+        viñeta. Si la recomendación aplica a otra situación (paciente asintomático, sin
+        sangrado, estable, en otro momento), escribe la viñeta para que sí aplique; nunca
+        marques como correcta una conducta que sería un error en el paciente descrito.
+      - Pregunta lo que un médico general debe saber y decidir: diagnóstico, estudio
+        inicial, tratamiento de primera línea, urgencias, referencia oportuna, prevención y
+        seguimiento. No preguntes detalles de subespecialidad (técnicas o insumos
+        quirúrgicos, pruebas o índices que solo usa el especialista) ni datos
+        administrativos (quién realiza un procedimiento, cómo se entrega la información).
+        Si una recomendación solo trata esos detalles, no la uses.
       - Evalúa una decisión clínica que el alumno debe razonar integrando los datos del caso
         con la recomendación, con la dificultad del ENARM real. Nunca pregunta por un dato
         que la viñeta ya dice: si la viñeta describe un signo, no preguntes cuál es el signo.
@@ -93,7 +110,8 @@ module Questions
       - Cada distractor es algo que un médico consideraría para este paciente: lo correcto
         en otro momento o situación, una alternativa de segunda línea, o un error frecuente
         de quien estudió el tema de forma incompleta. Nunca una opción absurda, peligrosa o
-        que nadie elegiría: un distractor evidente hace inútil el reactivo.
+        que nadie elegiría: un distractor evidente hace inútil el reactivo. Ningún
+        distractor puede ser también correcto según las recomendaciones.
     TEXT
 
     # An unknown detail level falls back to focused rather than failing the call.
@@ -174,7 +192,7 @@ module Questions
 
       <<~TEXT.strip
         La viñeta debe presentar al paciente COMPLETO, como en el examen real (150 a 200
-        palabras):
+        palabras; menos de 150 es demasiado corta):
         - Edad, sexo y antecedentes con su duración y tratamiento ("diabetes mellitus tipo 2
           de 12 años en manejo irregular", "hipertensión controlada con IECA").
         - Motivo de consulta con inicio, duración y evolución precisas.

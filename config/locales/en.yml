@@ -341,6 +341,10 @@ en:
       repeats_question: "it repeats another question in the case"
       implausible_distractor: "a distractor nobody would choose"
       giveaway_wording: "the wording or an option's shape gives the answer away"
+      wrong_for_this_patient: "the marked answer is not the best choice for this patient"
+      another_option_valid: "another option is also correct"
+      beyond_general_practice: "specialist detail, beyond what a general physician is expected to know"
+      administrative_trivia: "administrative detail, not a clinical decision"
     question_count:
       one: "1 question"
       other: "%{count} questions"

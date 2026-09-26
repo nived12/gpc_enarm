@@ -21,9 +21,15 @@ module Questions
     # the validation batch (2026-09-25). None needs the marked answer, so asking for them
     # leaves the blind answering intact. The second pilot showed the verifier calling a
     # correct option that echoes the recommendation a giveaway; the student never sees the
-    # recommendation, so the prompt says that is expected. A code the model invents is ignored: only these
+    # recommendation, so the prompt says that is expected. The last four came from reading
+    # the first 500-call chunk, and are the only judgements the verifier may make from its
+    # own medical knowledge: whether the recommendation fits this patient at all cannot be
+    # read from the recommendation. A code the model invents is ignored: only these
     # hold a case back, and each has a label a reviewer reads (review.flaws).
-    FLAWS = %w[answer_in_stem other_patient repeats_question implausible_distractor giveaway_wording].freeze
+    FLAWS = %w[
+      answer_in_stem other_patient repeats_question implausible_distractor giveaway_wording
+      wrong_for_this_patient another_option_valid beyond_general_practice administrative_trivia
+    ].freeze
 
     # Options go out lettered, as on the real exam. Numbered options were answered
     # zero-based often enough to record a verifier that agreed as one that disputed.
@@ -90,6 +96,15 @@ module Questions
           elegiría.
         - giveaway_wording: la viñeta o el enunciado de la pregunta contienen palabras que
           delatan la respuesta, o una opción destaca claramente de las demás por su forma.
+        Para los cuatro siguientes usa tu conocimiento médico:
+        - wrong_for_this_patient: la opción que la recomendación respalda no es la mejor
+          conducta para el paciente tal como se describe (la recomendación aplica a otra
+          situación, por ejemplo a un paciente estable o sin sangrado).
+        - another_option_valid: otra opción también es válida o igual de adecuada.
+        - beyond_general_practice: pregunta un detalle de subespecialidad que no se espera
+          de un médico general (técnica o insumo quirúrgico, prueba o índice de especialista).
+        - administrative_trivia: pregunta un dato administrativo (quién realiza un
+          procedimiento, cómo se entrega la información) y no una decisión clínica.
         El alumno no ve la recomendación: que la opción respaldada repita su texto es lo
         esperado y no es un defecto. Tampoco lo es que la recomendación no alcance para
         decidir; eso ya lo dice "decidable". Marca solo defectos claros; en "note" di cuál
