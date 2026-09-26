@@ -524,6 +524,7 @@ en:
         verification: "Verification"
         bake_off: "Model comparison"
         rationales: "Option rationales"
+        screening: "Guideline screening for the ENARM"
       columns:
         purpose: "Purpose"
         model: "Provider · model"
@@ -539,6 +540,7 @@ en:
         total: "Guidelines ingested"
         with_statements: "With recommendations"
         generatable: "Fit to generate from"
+        screening_pending: "Still to screen for the ENARM"
         current: "Current"
         expired: "Expired"
         undated: "Undated"

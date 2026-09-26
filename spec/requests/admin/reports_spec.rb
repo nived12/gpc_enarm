@@ -28,6 +28,15 @@ RSpec.describe "Admin costs and ingestion", type: :request do
       expect(response.body).to include("width: 100.0%", "width: 5.0%")
     end
 
+    it "names every purpose in the interface's language" do
+      GenerationRun.purposes.each_key { |purpose| create(:generation_run, purpose: purpose) }
+
+      get admin_costs_path
+
+      expect(response.body).not_to include("translation_missing", "Translation missing")
+      expect(response.body).to include(I18n.t("admin.costs.purposes.screening"))
+    end
+
     it "says so when nothing has run yet" do
       get admin_costs_path
 
@@ -51,6 +60,17 @@ RSpec.describe "Admin costs and ingestion", type: :request do
       expect(body).to include(I18n.t("admin.ingestion.with_statements", count: 1, total: 2))
       expect(body).to include(I18n.t("admin.ingestion.with_statements", count: 0, total: 1))
       expect(body).to include("Pediatría", I18n.t("admin.ingestion.unfiled"))
+    end
+
+    it "says how many guidelines are still to screen before generating" do
+      create(
+        :recommendation,
+        guideline_section: create(:guideline_section, guideline: create(:guideline, enarm_relevance: nil))
+      )
+
+      get admin_ingestion_path
+
+      expect(response.body).to include(I18n.t("admin.ingestion.counts.screening_pending"))
     end
 
     it "shows how the published cases spread over the three contexts, and how many have none" do

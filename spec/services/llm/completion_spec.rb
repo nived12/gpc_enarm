@@ -192,8 +192,9 @@ RSpec.describe Llm::Completion do
       expect(described_class.json_in(" {\"a\":1} ")).to eq("a" => 1)
     end
 
-    it "is nil for a reply that is not JSON" do
+    it "is nil for a reply that is not JSON, or is JSON but not an object" do
       expect(described_class.json_in("No puedo ayudar con eso.")).to be_nil
+      expect(described_class.json_in("[1, 2]")).to be_nil
     end
   end
 end

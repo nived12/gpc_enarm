@@ -526,6 +526,7 @@ es:
         verification: "Verificación"
         bake_off: "Comparación de modelos"
         rationales: "Porqués de las opciones"
+        screening: "Revisión de guías para el ENARM"
       columns:
         purpose: "Propósito"
         model: "Proveedor · modelo"
@@ -541,6 +542,7 @@ es:
         total: "Guías ingeridas"
         with_statements: "Con recomendaciones"
         generatable: "Aptas para generar"
+        screening_pending: "Por revisar para el ENARM"
         current: "Vigentes"
         expired: "Fuera de vigencia"
         undated: "Sin año"

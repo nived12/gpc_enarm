@@ -53,6 +53,12 @@ RSpec.describe Questions::CaseGenerator do
     expect(result.errors.full_messages.to_sentence).to include("no tiene recomendaciones")
   end
 
+  it "takes by default only what the screen left for a general physician" do
+    recommendation.update!(decision_kind: "process")
+
+    expect(described_class.call(guideline)).to be_failure
+  end
+
   it "passes the provider's failure through rather than inventing a case" do
     allow(Llm::Completion).to receive(:call).and_return(
       ApplicationService::Response.new(

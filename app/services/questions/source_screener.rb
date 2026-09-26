@@ -36,9 +36,8 @@ module Questions
 
     def call
       rate_relevance if guideline.enarm_relevance.nil?
-      return failure(payload: tally) if has_errors?
-
-      classify_statements unless guideline.relevance_out_of_scope?
+      classify_statements unless has_errors? || guideline.relevance_out_of_scope?
+      guideline.update_columns(screened_at: Time.current)
       return failure(payload: tally) if has_errors?
 
       success(tally)
@@ -74,12 +73,14 @@ module Questions
         reply = ask(statements_prompt(slice))
         return if reply.nil?
 
-        slice.each.with_index(1) do |statement, number|
-          kind = DECISION_CODES[reply[number.to_s].to_s.strip.downcase]
-          next if kind.nil?
-
-          statement.update!(decision_kind: kind)
-          tally[:labelled][kind] += 1
+        # Written a kind at a time, without validations: a legacy row that no longer
+        # validates must not take the whole screen down with it.
+        labelled = slice.each.with_index(1).group_by do |_, number|
+          DECISION_CODES[reply[number.to_s].to_s.strip.downcase]
+        end
+        labelled.except(nil).each do |kind, statements|
+          Recommendation.where(id: statements.map { |statement, _| statement.id }).update_all(decision_kind: kind)
+          tally[:labelled][kind] += statements.size
         end
       end
     end
@@ -102,10 +103,8 @@ module Questions
 
       run&.charge!(completion.payload)
       reply = Llm::Completion.json_in(completion.payload[:content])
-      return reply if reply.is_a?(Hash)
-
-      add_error_message("El modelo no devolvió JSON legible para #{guideline.catalog_key}")
-      nil
+      add_error_message("El modelo no devolvió JSON legible para #{guideline.catalog_key}") if reply.nil?
+      reply
     end
 
     def relevance_prompt

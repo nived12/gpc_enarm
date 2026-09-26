@@ -24,10 +24,11 @@ module Llm
     # provider capability rather than something this client can send unconditionally.
     THINKING = { type: "disabled" }.freeze
 
-    # The JSON object a reply holds, or nil. Asked for JSON alone, models still sometimes
-    # fence it in markdown.
+    # The JSON object a reply holds, or nil — also for JSON that is not an object, which
+    # no caller asks for. Asked for JSON alone, models still sometimes fence it in markdown.
     def self.json_in(content)
-      JSON.parse(content.to_s.strip.sub(/\A```(?:json)?/, "").sub(/```\z/, "").strip)
+      parsed = JSON.parse(content.to_s.strip.sub(/\A```(?:json)?/, "").sub(/```\z/, "").strip)
+      parsed if parsed.is_a?(Hash)
     rescue JSON::ParserError
       nil
     end

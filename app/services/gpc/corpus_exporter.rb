@@ -9,11 +9,17 @@
 # That is not only smaller. It means the recommendations in an environment always match
 # that environment's parser, rather than being frozen at whatever the parser said on the
 # day the file was written.
+#
+# The one judgement that is neither scraped nor derived is Questions::SourceScreener's,
+# paid for per call. A guideline's rating travels with it; a statement's label cannot,
+# since the statement is rebuilt on the far side, so `questions:screen` runs again there
+# (about US$0.50 for the whole corpus) before anything is generated.
 module Gpc
   class CorpusExporter < ApplicationService
     GUIDELINE_ATTRIBUTES = %w[
       catalog_key title institution year source external_id
       catalog_url document_url levels_of_care specialty_labels content_hash ingested_at
+      enarm_relevance relevance_note
     ].freeze
 
     SECTION_ATTRIBUTES = %w[

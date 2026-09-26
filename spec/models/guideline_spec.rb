@@ -60,6 +60,13 @@ RSpec.describe Guideline do
       expect(described_class.generatable).to eq([secondary])
       expect(described_class.screenable).to include(unscreened)
     end
+
+    it "leaves out a guideline with no statement screened as a general physician's decision" do
+      guideline = with_statement(create(:guideline))
+      guideline.recommendations.update_all(decision_kind: "specialist")
+
+      expect(described_class.generatable).to be_empty
+    end
   end
 
   describe ".screening_pending" do

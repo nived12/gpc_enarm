@@ -56,7 +56,7 @@ module Questions
     attr_reader :guideline, :run, :limit, :detail, :locale
 
     def recommendations
-      @recommendations ||= Recommendation.actionable
+      @recommendations ||= Recommendation.actionable.decision_general_practice
                                          .where(guideline_sections: { guideline_id: guideline.id })
                                          .order(:id).limit(limit).to_a
     end

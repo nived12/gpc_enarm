@@ -78,10 +78,14 @@ class Guideline < ApplicationRecord
                   .where(id: GuidelineSection.actionable.joins(:recommendations).select(:guideline_id))
   }
 
-  # What a generation run draws from: the screenable guidelines the ENARM asks about. One
-  # not yet screened is left out rather than assumed relevant — the cases the screen was
-  # built to stop came from specialist, rehabilitation and administrative guidelines.
-  scope :generatable, -> { screenable.where(enarm_relevance: %w[core secondary]) }
+  # What a generation run draws from: the screenable guidelines the ENARM asks about, with
+  # a statement screened as a general physician's decision. One not yet screened is left
+  # out rather than assumed relevant — the cases the screen was built to stop came from
+  # specialist, rehabilitation and administrative guidelines.
+  scope :generatable, lambda {
+    screenable.where(enarm_relevance: %w[core secondary])
+              .where(id: Recommendation.actionable.decision_general_practice.select("guideline_sections.guideline_id"))
+  }
 
   # Screenable guidelines the screen has not finished: never rated, or rated in scope with
   # a statement still unlabelled.

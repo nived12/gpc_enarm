@@ -152,4 +152,32 @@ RSpec.describe Questions::SourceScreener do
     expect(result.payload[:labelled]).to eq("general_practice" => 2)
     expect(statements.last.reload.decision_kind).to be_nil
   end
+
+  it "does not rate again a guideline already rated" do
+    guideline.update!(enarm_relevance: "core")
+    stub_replies({})
+
+    described_class.call(guideline)
+
+    expect(prompts_sent.sole).not_to include("out_of_scope")
+  end
+
+  # So the task puts a guideline the model keeps failing on at the back of the queue.
+  it "records when it tried, whether or not it succeeded" do
+    stub_replies("relevance" => "high")
+
+    described_class.call(guideline)
+
+    expect(guideline.reload.screened_at).to be_within(1.second).of(Time.current)
+  end
+
+  it "labels a statement that no longer passes validation" do
+    guideline.update!(enarm_relevance: "core")
+    statements.first.update_column(:label, "")
+    stub_replies("1" => "gp")
+
+    described_class.call(guideline)
+
+    expect(kinds.first).to eq("general_practice")
+  end
 end

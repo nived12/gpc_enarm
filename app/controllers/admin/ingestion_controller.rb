@@ -8,7 +8,8 @@ module Admin
       with_statements = Guideline.where(id: GuidelineSection.joins(:recommendations).select(:guideline_id))
       @guidelines = {
         total: Guideline.count, with_statements: with_statements.count,
-        generatable: Guideline.generatable.count, current: Guideline.current.count,
+        generatable: Guideline.generatable.count, screening_pending: Guideline.screening_pending.count,
+        current: Guideline.current.count,
         expired: Guideline.expired.count, undated: Guideline.undated.count
       }
       @by_source = Guideline.group(:source).count

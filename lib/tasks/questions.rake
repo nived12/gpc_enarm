@@ -1,4 +1,11 @@
 namespace :questions do
+  # Generation draws only on screened material, so on an unscreened corpus it would run
+  # on part of it and report the rest as used up.
+  unscreened = lambda do
+    pending = Guideline.screening_pending.count
+    "#{pending} guías sin revisar para el ENARM. Corre antes rake questions:screen[#{pending}]" if pending.positive?
+  end
+
   desc "Generate clinical cases: rake questions:generate[calls,budget_usd,source,order,specialty] " \
        "(source: live_site|web_archive; order: newest|by_specialty; specialty: a slug, to top one up)"
   task :generate, %i[calls budget source order specialty] => :environment do |_task, args|
@@ -11,6 +18,7 @@ namespace :questions do
     abort("No existe la especialidad #{args[:specialty]}") if args[:specialty].present? && specialty.nil?
     provider = Llm::Provider.for(:generator)
     abort("Falta la clave del generador. Revisa .env") unless provider.configured?
+    unscreened.call&.then { |message| abort(message) }
 
     guidelines = Guideline.generatable
     guidelines = guidelines.where(source: args[:source]) if args[:source].present?
@@ -97,7 +105,10 @@ namespace :questions do
       purpose: "screening", provider: provider.name, model: provider.model, started_at: Time.current
     )
     failures_in_a_row = 0
-    Guideline.screening_pending.order(:catalog_key).limit((args[:count] || 10).to_i).each do |guideline|
+    Guideline.screening_pending.order(
+      Arel.sql("screened_at ASC NULLS FIRST"),
+      :catalog_key
+    ).limit((args[:count] || 10).to_i).each do |guideline|
       result = Questions::SourceScreener.call(guideline, run: run)
       labels = result.payload[:labelled].map { |kind, n| "#{kind}=#{n}" }.join(" ")
       puts "#{guideline.catalog_key}: #{guideline.enarm_relevance || "sin calificar"} #{labels}" \
@@ -259,6 +270,7 @@ namespace :questions do
     abort("Uso: rake questions:full_run[calls,budget_usd,label,chunk]") if args[:calls].blank? || args[:budget].blank?
     missing = Llm::Provider.all.reject(&:configured?)
     abort("Faltan claves: #{missing.map(&:role).join(", ")}. Revisa .env") if missing.any?
+    unscreened.call&.then { |message| abort(message) }
 
     result = Questions::FullRunner.call(
       calls: args[:calls].to_i, budget_usd: args[:budget].to_f, label: args[:label].presence || "full",
@@ -275,6 +287,7 @@ namespace :questions do
 
   desc "Estimate calls, tokens, dollars and yield for a run, with no network: rake questions:estimate[calls,order]"
   task :estimate, %i[calls order] => :environment do |_task, args|
+    unscreened.call&.then { |message| puts "Aviso: #{message}; la estimación cubre solo lo revisado." }
     result = Questions::CostEstimator.call(
       calls: args[:calls].presence&.to_i,
       order: args[:order].presence || "by_specialty"
