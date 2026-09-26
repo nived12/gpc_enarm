@@ -92,6 +92,7 @@ module Llm
       payload = { model: provider.model, messages: [{ role: "user", content: prompt }],
                   max_tokens: max_tokens, response_format: { type: "json_object" } }
       payload[:thinking] = THINKING if provider.supports_thinking? && !thinking
+      payload[:reasoning_effort] = provider.reasoning_effort if provider.reasoning_effort
       payload.to_json
     end
 

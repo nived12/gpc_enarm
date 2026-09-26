@@ -146,6 +146,22 @@ RSpec.describe Llm::Completion do
       ENV.delete("LLM_VERIFIER_API_KEY")
     end
 
+    it "says how long to think only when the role is configured to" do
+      with_key do
+        stub_request(:post, endpoint).to_return(status: 200, body: completion("ok"))
+        ENV["LLM_REASONING_EFFORT"] = "low"
+
+        described_class.call(role: :generator, prompt: "hola")
+        ENV.delete("LLM_REASONING_EFFORT")
+        described_class.call(role: :generator, prompt: "hola")
+
+        expect(a_request(:post, endpoint).with { |r| body_of(r)["reasoning_effort"] == "low" }).to have_been_made.once
+        expect(a_request(:post, endpoint).with { |r| !body_of(r).key?("reasoning_effort") }).to have_been_made.once
+      ensure
+        ENV.delete("LLM_REASONING_EFFORT")
+      end
+    end
+
     it "sends the model and the token budget it was given, and asks for a JSON object" do
       with_key do
         stub_request(:post, endpoint).to_return(status: 200, body: completion("ok"))

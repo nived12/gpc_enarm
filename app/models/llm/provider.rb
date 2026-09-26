@@ -60,7 +60,7 @@ module Llm
       verifier: { provider: "deepseek", prefix: "LLM_VERIFIER" }
     }.freeze
 
-    attr_reader :role, :name, :model, :base_url, :api_key
+    attr_reader :role, :name, :model, :base_url, :api_key, :reasoning_effort
 
     def self.for(role)
       defaults = ROLES.fetch(role)
@@ -85,6 +85,10 @@ module Llm
       @model = env("MODEL") || preset.fetch(:model)
       @base_url = env("BASE_URL") || preset.fetch(:base_url)
       @api_key = env("API_KEY")
+      # How long a thinking model thinks: minimal, low, medium or high, sent as
+      # `reasoning_effort`, which Gemini maps to its thinking_level. Unset leaves the
+      # model's default — for gemini-3.8-flash about 6,000 billed tokens a generation call.
+      @reasoning_effort = env("REASONING_EFFORT")
       @supports_thinking = preset.fetch(:thinking)
     end
 
