@@ -86,8 +86,11 @@ module Llm
     end
 
     def body
+      # Every caller asks for one JSON object. Left to the prompt alone, gemini-3.8-flash
+      # broke it in 9 of 50 generation calls (2026-09-26) — each one paid for and thrown
+      # away; JSON mode is honoured by both Gemini and DeepSeek, verified against each.
       payload = { model: provider.model, messages: [{ role: "user", content: prompt }],
-                  max_tokens: max_tokens }
+                  max_tokens: max_tokens, response_format: { type: "json_object" } }
       payload[:thinking] = THINKING if provider.supports_thinking? && !thinking
       payload.to_json
     end
@@ -111,11 +114,19 @@ module Llm
       success(content: content, finish_reason: choice["finish_reason"], cost_usd: cost, **usage)
     end
 
+    # DeepSeek counts its reasoning inside completion_tokens and says how much of it there
+    # was. Gemini's compatibility layer leaves thinking out of completion_tokens and only
+    # in total_tokens — measured 2026-09-26 on a generation prompt: gemini-3.8-flash
+    # reported 2,473 completion tokens of a 10,670 total, 6,134 of them thinking — yet
+    # bills it as output ("Output price (including thinking tokens)"). Counting only
+    # completion_tokens priced its runs at a third of the bill.
     def usage_from(response)
       usage = response["usage"] || {}
-      { input_tokens: usage["prompt_tokens"].to_i,
-        output_tokens: usage["completion_tokens"].to_i,
-        reasoning_tokens: usage.dig("completion_tokens_details", "reasoning_tokens").to_i }
+      input = usage["prompt_tokens"].to_i
+      completion = usage["completion_tokens"].to_i
+      unreported = usage["total_tokens"].to_i - input - completion
+      reasoning = unreported.positive? ? unreported : usage.dig("completion_tokens_details", "reasoning_tokens").to_i
+      { input_tokens: input, output_tokens: completion + [unreported, 0].max, reasoning_tokens: reasoning }
     end
   end
 end

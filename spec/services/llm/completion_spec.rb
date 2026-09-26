@@ -65,6 +65,18 @@ RSpec.describe Llm::Completion do
     end
   end
 
+  # Gemini leaves thinking out of completion_tokens, and bills it as output all the same.
+  it "charges thinking that only the total reports as output" do
+    with_key do
+      usage = { prompt_tokens: 2_063, completion_tokens: 2_473, total_tokens: 10_670 }
+      stub_request(:post, endpoint).to_return(status: 200, body: completion("ok", usage: usage))
+
+      result = described_class.call(role: :generator, prompt: "hola")
+
+      expect(result.payload).to include(input_tokens: 2_063, output_tokens: 8_607, reasoning_tokens: 6_134)
+    end
+  end
+
   describe "the reasoning trap" do
     it "fails loudly when the model spent its whole budget thinking" do
       with_key do
@@ -134,7 +146,7 @@ RSpec.describe Llm::Completion do
       ENV.delete("LLM_VERIFIER_API_KEY")
     end
 
-    it "sends the model and the token budget it was given" do
+    it "sends the model and the token budget it was given, and asks for a JSON object" do
       with_key do
         stub_request(:post, endpoint).to_return(status: 200, body: completion("ok"))
 
@@ -143,7 +155,8 @@ RSpec.describe Llm::Completion do
         expect(
           a_request(:post, endpoint).with do |r|
             parsed = body_of(r)
-            parsed["model"] == "gemini-3.1-flash-lite" && parsed["max_tokens"] == 1_234
+            parsed["model"] == "gemini-3.1-flash-lite" && parsed["max_tokens"] == 1_234 &&
+              parsed["response_format"] == { "type" => "json_object" }
           end
         ).to have_been_made
       end
