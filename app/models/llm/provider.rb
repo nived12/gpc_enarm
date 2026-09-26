@@ -42,9 +42,17 @@ module Llm
     # on 2026-09-22. DeepSeek halves both outside its peak hours; the peak price is kept,
     # so a spending cap errs towards stopping early. A model not listed here has no
     # known price, and a run on it is not capped by cost.
+    #
+    # The rest were read on 2026-09-26 for the model comparison. Gemini 3.8 Flash doubles
+    # both on 2027-01-01, and 3.1 Pro's price is the one for prompts under 200k tokens,
+    # which every prompt here is.
     PRICES = {
       "gemini-3.1-flash-lite" => [0.25, 1.50],
-      "deepseek-flash" => [0.30, 1.20]
+      "gemini-3.5-flash-lite" => [0.30, 2.50],
+      "gemini-3.8-flash" => [0.75, 3.75],
+      "gemini-3.1-pro-preview" => [2.00, 12.00],
+      "deepseek-flash" => [0.30, 1.20],
+      "deepseek-v4-pro" => [1.32, 3.96]
     }.freeze
 
     ROLES = {
