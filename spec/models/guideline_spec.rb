@@ -51,6 +51,32 @@ RSpec.describe Guideline do
 
       expect(described_class.generatable).to eq([older])
     end
+
+    it "leaves out a guideline screened out of scope, and one not screened yet" do
+      secondary = with_statement(create(:guideline, enarm_relevance: "secondary"))
+      with_statement(create(:guideline, enarm_relevance: "out_of_scope"))
+      unscreened = with_statement(create(:guideline, enarm_relevance: nil))
+
+      expect(described_class.generatable).to eq([secondary])
+      expect(described_class.screenable).to include(unscreened)
+    end
+  end
+
+  describe ".screening_pending" do
+    def with_statement(guideline, decision_kind)
+      section = create(:guideline_section, guideline: guideline, kind: "recommendation")
+      create(:recommendation, guideline_section: section, decision_kind: decision_kind)
+      guideline
+    end
+
+    it "holds a guideline never rated, or rated in scope with a statement still unlabelled" do
+      unrated = with_statement(create(:guideline, enarm_relevance: nil), nil)
+      unlabelled = with_statement(create(:guideline), nil)
+      with_statement(create(:guideline), "process")
+      with_statement(create(:guideline, enarm_relevance: "out_of_scope"), nil)
+
+      expect(described_class.screening_pending).to contain_exactly(unrated, unlabelled)
+    end
   end
 
   describe "#main_topic" do

@@ -87,6 +87,31 @@ namespace :questions do
     puts "  ids: #{result[:unclassified].join(", ")}" if result[:unclassified].any?
   end
 
+  desc "Rate guidelines for the ENARM and label their statements, before generating from them: " \
+       "rake questions:screen[count] (count: guidelines)"
+  task :screen, [:count] => :environment do |_task, args|
+    provider = Llm::Provider.for(:verifier)
+    abort("Falta la clave del verificador. Revisa .env") unless provider.configured?
+
+    run = GenerationRun.create!(
+      purpose: "screening", provider: provider.name, model: provider.model, started_at: Time.current
+    )
+    failures_in_a_row = 0
+    Guideline.screening_pending.order(:catalog_key).limit((args[:count] || 10).to_i).each do |guideline|
+      result = Questions::SourceScreener.call(guideline, run: run)
+      labels = result.payload[:labelled].map { |kind, n| "#{kind}=#{n}" }.join(" ")
+      puts "#{guideline.catalog_key}: #{guideline.enarm_relevance || "sin calificar"} #{labels}" \
+           "#{" — #{result.errors.full_messages.to_sentence}" if result.failure?}"
+      failures_in_a_row = result.success? ? 0 : failures_in_a_row + 1
+      break if failures_in_a_row == 3
+    end
+
+    run.update!(status: failures_in_a_row == 3 ? "failed" : "completed", finished_at: Time.current)
+    puts "\nPendientes: #{Guideline.screening_pending.count} guías. llamadas=#{run.calls} " \
+         "tokens=#{run.total_tokens} costo=$#{format("%.4f", run.cost_usd)}"
+    puts "Detenida tras 3 fallas seguidas; no se reintentó." if run.status_failed?
+  end
+
   desc "Have a second model family judge unverified cases: rake questions:verify[count]"
   task :verify, [:count] => :environment do |_task, args|
     count = (args[:count] || 10).to_i

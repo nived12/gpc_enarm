@@ -33,7 +33,7 @@ module Questions
       return failure(completion.errors) unless completion.success?
 
       run&.charge!(completion.payload)
-      payload = parse(completion.payload[:content])
+      payload = Llm::Completion.json_in(completion.payload[:content])
       return failure("El modelo no devolvió JSON legible") if payload.nil?
 
       built = CaseBuilder.call(
@@ -67,12 +67,6 @@ module Questions
 
 
     # Models wrap JSON in a markdown fence often enough, even when told not to.
-    def parse(content)
-      JSON.parse(content.to_s.strip.sub(/\A```(?:json)?/, "").sub(/```\z/, "").strip)
-    rescue JSON::ParserError
-      nil
-    end
-
     def record(built)
       return if run.nil?
 

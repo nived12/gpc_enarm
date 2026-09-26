@@ -8,6 +8,15 @@ class Recommendation < ApplicationRecord
   belongs_to :guideline_section
   has_one :guideline, through: :guideline_section
 
+  # What the statement asks of whoever follows it, read by Questions::SourceScreener. Only
+  # a general physician's decision makes an ENARM item: a specialist's technique asks
+  # what the exam does not, and a process statement — who fills in which form — asks
+  # nothing clinical at all. Nil until screened, and gpc:reparse rebuilds uncited rows
+  # without it, so a reparse is followed by another screen.
+  enum :decision_kind,
+    { general_practice: "general_practice", specialist: "specialist", process: "process" },
+    prefix: :decision
+
   validates :text, presence: true
   validates :label, presence: true
   validates :position, presence: true, uniqueness: { scope: :guideline_section_id }

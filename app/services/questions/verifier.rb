@@ -48,7 +48,7 @@ module Questions
       return failure(completion.errors) unless completion.success?
 
       record(completion.payload)
-      judgements = parse(completion.payload[:content])
+      judgements = Llm::Completion.json_in(completion.payload[:content])
       return failure("El verificador no devolvió JSON legible") if judgements.nil?
 
       verdict = apply(judgements)
@@ -123,12 +123,6 @@ module Questions
         #{options.join("\n")}
         Recomendación: #{question.recommendation.text.squish}
       TEXT
-    end
-
-    def parse(content)
-      JSON.parse(content.to_s.strip.sub(/\A```(?:json)?/, "").sub(/```\z/, "").strip)
-    rescue JSON::ParserError
-      nil
     end
 
     def apply(judgements)

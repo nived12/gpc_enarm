@@ -24,6 +24,14 @@ module Llm
     # provider capability rather than something this client can send unconditionally.
     THINKING = { type: "disabled" }.freeze
 
+    # The JSON object a reply holds, or nil. Asked for JSON alone, models still sometimes
+    # fence it in markdown.
+    def self.json_in(content)
+      JSON.parse(content.to_s.strip.sub(/\A```(?:json)?/, "").sub(/```\z/, "").strip)
+    rescue JSON::ParserError
+      nil
+    end
+
     def initialize(role:, prompt:, max_tokens: DEFAULT_MAX_TOKENS, thinking: false)
       super()
       @provider = Llm::Provider.for(role)

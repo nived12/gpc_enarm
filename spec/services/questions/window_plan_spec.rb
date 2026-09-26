@@ -43,4 +43,18 @@ RSpec.describe Questions::WindowPlan do
 
     expect(plan(order: "random")).to eq([newer, older])
   end
+
+  it "draws only on statements that ask a general physician's decision" do
+    guideline = guideline_with(2)
+    specialist = create(
+      :recommendation, guideline_section: guideline.guideline_sections.first,
+      decision_kind: "specialist"
+    )
+    create(:recommendation, guideline_section: guideline.guideline_sections.first, decision_kind: nil)
+
+    statements = described_class.new(Guideline.generatable).windows.flat_map(&:last)
+
+    expect(statements.size).to eq(2)
+    expect(statements).not_to include(specialist)
+  end
 end

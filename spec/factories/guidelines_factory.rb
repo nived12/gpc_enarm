@@ -10,6 +10,7 @@ FactoryBot.define do
     document_url { "https://gpc.salud.gob.mx/DDIMBE/DDIMBE/ContenidoGuia?DocumentoID=3079" }
     levels_of_care { [1, 2] }
     specialty_labels { ["Gineco-Obstetricia"] }
+    enarm_relevance { "core" }
     sequence(:content_hash) { |n| Digest::SHA256.hexdigest("guideline-#{n}") }
     ingested_at { Time.current }
   end

@@ -13,6 +13,13 @@ class Guideline < ApplicationRecord
 
   enum :source, { live_site: "live_site", web_archive: "web_archive" }, prefix: :source
 
+  # How much the ENARM, which examines a general physician, asks of this guideline — read
+  # by Questions::SourceScreener. `levels_of_care` would have said it, but the catalog
+  # fills it in for only 53 of the 389 guidelines generation draws from.
+  enum :enarm_relevance,
+    { core: "core", secondary: "secondary", out_of_scope: "out_of_scope" },
+    prefix: :relevance
+
   validates :catalog_key, presence: true, uniqueness: true
   # A catalog key with a prefix we do not know yields a nil institution. Validating it
   # turns that into one recorded failure instead of a NotNullViolation that takes the
@@ -64,11 +71,24 @@ class Guideline < ApplicationRecord
     SQL
   }
 
-  # What a generation run draws from: a physician's guideline, in its latest edition,
+  # What Questions::SourceScreener reads: a physician's guideline, in its latest edition,
   # with something actionable in it.
-  scope :generatable, lambda {
+  scope :screenable, lambda {
     for_physicians.latest_editions
                   .where(id: GuidelineSection.actionable.joins(:recommendations).select(:guideline_id))
+  }
+
+  # What a generation run draws from: the screenable guidelines the ENARM asks about. One
+  # not yet screened is left out rather than assumed relevant — the cases the screen was
+  # built to stop came from specialist, rehabilitation and administrative guidelines.
+  scope :generatable, -> { screenable.where(enarm_relevance: %w[core secondary]) }
+
+  # Screenable guidelines the screen has not finished: never rated, or rated in scope with
+  # a statement still unlabelled.
+  scope :screening_pending, lambda {
+    unlabelled = Recommendation.actionable.where(decision_kind: nil).select("guideline_sections.guideline_id")
+    screenable.where(enarm_relevance: nil)
+              .or(screenable.where.not(enarm_relevance: "out_of_scope").where(id: unlabelled))
   }
 
   # IMSS-028-22 → imss. The prefix is the only place the publishing institution

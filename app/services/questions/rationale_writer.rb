@@ -29,7 +29,7 @@ module Questions
       return failure(completion.errors) unless completion.success?
 
       record(completion.payload)
-      written = parse(completion.payload[:content])
+      written = Llm::Completion.json_in(completion.payload[:content])
       return failure("El modelo no devolvió JSON legible") if written.nil?
 
       success(written: apply(written))
@@ -98,12 +98,6 @@ module Questions
       return "" unless clinical_case.locale == "en"
 
       "\nEl caso está en inglés: escribe las razones EN INGLÉS.\n"
-    end
-
-    def parse(content)
-      JSON.parse(content.to_s.strip.sub(/\A```(?:json)?/, "").sub(/```\z/, "").strip)
-    rescue JSON::ParserError
-      nil
     end
 
     # Only distractors, only letters that exist, only text that says something — and in

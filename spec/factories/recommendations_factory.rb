@@ -6,6 +6,7 @@ FactoryBot.define do
     grade { "A" }
     scale { "NICE" }
     citation { "Hong K, 2021" }
+    decision_kind { "general_practice" }
     sequence(:position)
   end
 end

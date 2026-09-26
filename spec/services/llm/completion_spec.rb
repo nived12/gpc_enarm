@@ -185,4 +185,15 @@ RSpec.describe Llm::Completion do
       end
     end
   end
+
+  describe ".json_in" do
+    it "reads a reply fenced in markdown as well as a bare one" do
+      expect(described_class.json_in("```json\n{\"a\":1}\n```")).to eq("a" => 1)
+      expect(described_class.json_in(" {\"a\":1} ")).to eq("a" => 1)
+    end
+
+    it "is nil for a reply that is not JSON" do
+      expect(described_class.json_in("No puedo ayudar con eso.")).to be_nil
+    end
+  end
 end

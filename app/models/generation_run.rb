@@ -10,7 +10,8 @@ class GenerationRun < ApplicationRecord
   has_many :clinical_cases, dependent: :nullify
 
   enum :purpose,
-    { generation: "generation", verification: "verification", bake_off: "bake_off", rationales: "rationales" },
+    { generation: "generation", verification: "verification", bake_off: "bake_off", rationales: "rationales",
+      screening: "screening" },
     prefix: :purpose
 
   enum :status,

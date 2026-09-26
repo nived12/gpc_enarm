@@ -228,10 +228,13 @@ bin/coverage-check --raise        # lock in an improvement, then commit the floo
   their recommendations, so a rebuild keeps every row whose text survived and refuses to
   delete one a question cites — never `destroy_all` a section's recommendations.
 - **Generate through `Questions::GenerationRunner`, from `Guideline.generatable`.** That
-  scope drops nursing guidelines (the ENARM examines physicians) and editions a newer one
-  of the same number replaced. The spending cap prices calls from
-  `Llm::Provider::PRICES`; changing the model means updating its price there, or the cap
-  refuses to run.
+  scope drops nursing guidelines (the ENARM examines physicians), editions a newer one
+  of the same number replaced, and anything `questions:screen` has not rated in scope;
+  `Questions::WindowPlan` then takes only statements screened as a general physician's
+  decision. After ingesting or reparsing, run `questions:screen` before generating —
+  an unscreened guideline or statement is never generated from. The spending cap prices
+  calls from `Llm::Provider::PRICES`; changing the model means updating its price there,
+  or the cap refuses to run.
 - **`deepseek-flash` thinks before answering, and the thinking is billed as output.**
   Measured live 2026-09-20 on a real generation prompt: 5,682 output tokens, of which
   **4,638 were reasoning** and 1,044 were the answer. With `max_tokens: 4000` it spent the

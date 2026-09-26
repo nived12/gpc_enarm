@@ -31,7 +31,7 @@ module Questions
       return failure(completion.errors) unless completion.success?
 
       record(completion.payload)
-      judgements = parse(completion.payload[:content])
+      judgements = Llm::Completion.json_in(completion.payload[:content])
       return failure("El verificador no devolvió JSON legible") if judgements.nil?
 
       success(apply(judgements))
@@ -95,12 +95,6 @@ module Questions
         #{options.join("\n")}
         Recomendación citada: #{question.recommendation.text.squish}
       TEXT
-    end
-
-    def parse(content)
-      JSON.parse(content.to_s.strip.sub(/\A```(?:json)?/, "").sub(/```\z/, "").strip)
-    rescue JSON::ParserError
-      nil
     end
 
     # A judgement about an option that was not sent, or a verdict outside the three, is

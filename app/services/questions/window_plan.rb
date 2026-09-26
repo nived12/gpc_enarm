@@ -1,5 +1,6 @@
 # The order a run takes the corpus in: a list of [guideline, statements] windows, one per
-# generation call, made of statements no question cites yet.
+# generation call, made of statements no question cites yet and that ask a general
+# physician's decision (Recommendation#decision_kind).
 #
 # Breadth first: every guideline's first window before any guideline's second, so a run
 # stopped early — by the cap, a crash, or on purpose — has touched the whole syllabus
@@ -53,7 +54,7 @@ module Questions
     end
 
     def uncited
-      Recommendation.actionable
+      Recommendation.actionable.decision_general_practice
                     .where(guideline_sections: { guideline_id: guidelines.select(:id) })
                     .where.not(id: Question.where.not(recommendation_id: nil).select(:recommendation_id))
                     .select("recommendations.*, guideline_sections.guideline_id AS source_guideline_id")
