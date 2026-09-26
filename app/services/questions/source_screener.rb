@@ -125,6 +125,10 @@ module Questions
           quirúrgicas o de procedimientos, rehabilitación, enfermería, organización de
           servicios o un tema que el ENARM no pregunta.
 
+        Una guía de rehabilitación es "out_of_scope" aunque el padecimiento sí se
+        pregunte: sus recomendaciones son terapias que prescribe el rehabilitador, y el
+        diagnóstico y tratamiento inicial del padecimiento están en otras guías.
+
         Guía: #{guideline.title} (#{guideline.catalog_key}, #{guideline.year || "sin año"})
         Especialidades según el catálogo: #{guideline.specialty_labels.join(", ").presence || "sin dato"}
 
@@ -149,13 +153,18 @@ module Questions
           hacer un diagnóstico, pedir o interpretar un estudio, iniciar un tratamiento,
           prevenir, tamizar o vacunar, dar seguimiento, reconocer una urgencia, o saber
           cuándo y a dónde referir.
-        - "specialist": un detalle que decide o ejecuta un especialista: la técnica de una
-          cirugía o de un procedimiento, un insumo o dispositivo, un esquema de segunda
-          línea en adelante, un parámetro que solo un especialista ajusta.
+        - "specialist": lo decide, prescribe o ejecuta un especialista, aunque el médico
+          general deba saber que existe: cirugía o procedimientos y su técnica, un insumo
+          o dispositivo, quimioterapia, radioterapia y sus dosis, terapias de
+          rehabilitación, fisioterapia u ortesis, un esquema de segunda línea en
+          adelante, un parámetro que solo un especialista ajusta.
         - "process": no es una decisión clínica sobre un paciente: organización de
           servicios, registro o documentación, capacitación del personal, trámites,
-          indicadores, recomendaciones de investigación, o una definición sin nada que
-          decidir.
+          indicadores, recomendaciones de investigación, o un dato o resultado de un
+          estudio sin nada que decidir.
+
+        Ante la duda entre "gp" y otra, no es "gp": una pregunta del ENARM escrita desde
+        esa recomendación tendría que poder responderla un médico general.
 
         #{slice.map.with_index(1) { |statement, number| "#{number}. #{excerpt(statement)}" }.join("\n")}
 
