@@ -20,6 +20,13 @@ RSpec.describe Questions::CaseBuilder do
       text: "Se recomienda realizar electrocardiograma de 12 derivaciones."
     )
   end
+  # A case's questions each cite their own statement, so a valid case needs two.
+  let(:second_recommendation) do
+    create(
+      :recommendation, guideline_section: section, grade: "A",
+      text: "Se recomienda realizar electrocardiograma de 12 derivaciones en los primeros 10 minutos."
+    )
+  end
 
   def options(correct_count: 1, total: 4)
     Array.new(total) { |i| { "text" => "Opción #{i}", "correct" => i < correct_count } }
@@ -34,12 +41,12 @@ RSpec.describe Questions::CaseBuilder do
     { "cases" => [{ "stem" => stem, "questions" => questions }] }
   end
 
-  def build_from(payload, recommendations: [recommendation], **options)
+  def build_from(payload, recommendations: [recommendation, second_recommendation], **options)
     described_class.call(payload, guideline: guideline, recommendations: recommendations, **options).payload
   end
 
   it "saves a case with its questions and options" do
-    kase = build_from(one_case(question, question))[:cases].sole
+    kase = build_from(one_case(question, question(number: 2)))[:cases].sole
 
     expect(kase).to be_persisted
     expect(kase).to have_attributes(stem: stem, locale: "es", source: "gpc_generated", guideline: guideline)
@@ -51,20 +58,20 @@ RSpec.describe Questions::CaseBuilder do
   it "keeps why each distractor is wrong, and nothing on the correct option" do
     opts = options.each_with_index.map { |option, i| option.merge("rationale" => "  Razón\n#{i}  ") }
 
-    kase = build_from(one_case(question(options: opts), question))[:cases].sole
+    kase = build_from(one_case(question(options: opts), question(number: 2)))[:cases].sole
 
     rationales = kase.questions.first.answer_options.map(&:rationale)
     expect(rationales).to eq([nil, "Razón 1", "Razón 2", "Razón 3"])
   end
 
   it "records the language it was asked for" do
-    expect(build_from(one_case(question, question), locale: "en")[:cases].sole.locale).to eq("en")
+    expect(build_from(one_case(question, question(number: 2)), locale: "en")[:cases].sole.locale).to eq("en")
   end
 
   it "files the case under the guideline's main topic and its specialty" do
     topic = create(:guideline_topic, guideline: guideline).topic
 
-    kase = build_from(one_case(question, question))[:cases].sole
+    kase = build_from(one_case(question, question(number: 2)))[:cases].sole
 
     expect(kase).to have_attributes(topic: topic, specialty: topic.branch.specialty)
   end
@@ -72,7 +79,7 @@ RSpec.describe Questions::CaseBuilder do
   describe "the setting the model names" do
     def with_setting(code, count: 1)
       { "cases" => Array.new(count) do |i|
-        { "stem" => "#{stem} Caso #{i}.", "setting" => code, "questions" => [question, question] }
+        { "stem" => "#{stem} Caso #{i}.", "setting" => code, "questions" => [question, question(number: 2)] }
       end }
     end
 
@@ -100,7 +107,7 @@ RSpec.describe Questions::CaseBuilder do
     it "keeps the case with an unknown setting when the model names none" do
       create(:emergency_setting)
 
-      expect(build_from(one_case(question, question))[:cases].sole.setting).to be_nil
+      expect(build_from(one_case(question, question(number: 2)))[:cases].sole.setting).to be_nil
     end
   end
 
@@ -135,7 +142,7 @@ RSpec.describe Questions::CaseBuilder do
 
     describe "a vignette that asks its own question" do
       def case_with_stem(stem, *questions)
-        { "cases" => [{ "stem" => stem, "questions" => questions.presence || [question, question] }] }
+        { "cases" => [{ "stem" => stem, "questions" => questions.presence || [question, question(number: 2)] }] }
       end
 
       # Case 250 of the pilot: the student read a question nobody answered above the one
@@ -161,12 +168,12 @@ RSpec.describe Questions::CaseBuilder do
         quoting = "#{stem} La esposa pregunta: ¿es grave? Refiere que nunca había tenido dolor así."
         short = question(text: "¿Diagnóstico?")
 
-        expect(build_from(case_with_stem(quoting, short, short))[:cases].size).to eq(1)
+        expect(build_from(case_with_stem(quoting, short, short.merge("recommendation" => 2)))[:cases].size).to eq(1)
       end
     end
 
     it "keeps the good questions in a case that also had a bad one" do
-      built = build_from(one_case(question, question(quote: "inventado"), question))
+      built = build_from(one_case(question, question(quote: "inventado"), question(number: 2)))
 
       expect(built[:cases].sole.questions.size).to eq(2)
       expect(built[:rejected]).to eq(1)
@@ -176,7 +183,7 @@ RSpec.describe Questions::CaseBuilder do
     # exam's are 150–200.
     it "rejects the whole case when the vignette is shorter than the floor" do
       short_stem = stem.split.first(described_class::MIN_STEM_WORDS - 1).join(" ")
-      built = build_from({ "cases" => [{ "stem" => short_stem, "questions" => [question, question] }] })
+      built = build_from({ "cases" => [{ "stem" => short_stem, "questions" => [question, question(number: 2)] }] })
 
       expect(built).to eq(cases: [], rejected: 2, reasons: { "stem_too_short" => 2 })
     end
@@ -187,6 +194,19 @@ RSpec.describe Questions::CaseBuilder do
       expect(built).to eq(
         cases: [], rejected: 2, reasons: { "quote_not_in_recommendation" => 1, "too_few_questions" => 1 }
       )
+    end
+
+    it "keeps one question per statement, dropping the later ones that reuse it" do
+      built = build_from(one_case(question, question(number: 2), question(text: "¿Y después?")))
+
+      expect(built[:cases].sole.questions.map(&:recommendation)).to eq([recommendation, second_recommendation])
+      expect(built).to include(rejected: 1, reasons: { "repeats_statement" => 1 })
+    end
+
+    it "drops a case whose questions all lean on one statement" do
+      built = build_from(one_case(question, question(text: "¿Y después?")))
+
+      expect(built).to eq(cases: [], rejected: 2, reasons: { "repeats_statement" => 1, "too_few_questions" => 1 })
     end
 
     it "skips a case with no vignette or no questions" do
@@ -202,15 +222,15 @@ RSpec.describe Questions::CaseBuilder do
   # A case that reads "Pregunta 1, Pregunta 3" to a student is a bug the reviewer sees
   # before the student does.
   it "numbers the questions that survived, not the ones the model sent" do
-    kase = build_from(one_case(question, question(number: 99), question))[:cases].sole
+    kase = build_from(one_case(question, question(number: 99), question(number: 2)))[:cases].sole
 
     expect(kase.questions.pluck(:position)).to eq([1, 2])
   end
 
   describe "difficulty" do
     def difficulty_for(grade)
-      recommendation.update!(grade: grade)
-      build_from(one_case(question, question))[:cases].sole.difficulty
+      [recommendation, second_recommendation].each { |statement| statement.update!(grade: grade) }
+      build_from(one_case(question, question(number: 2)))[:cases].sole.difficulty
     end
 
     it "calls a case from strong evidence an easier item and one from weak evidence a harder one" do

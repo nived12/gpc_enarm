@@ -78,6 +78,7 @@ module Questions
         source: "gpc_generated", locale: locale
       )
       built = questions.filter_map.with_index(1) { |question, position| build_question(kase, question, position) }
+      built = one_per_statement(kase, built)
       return if built.empty?
       return reject(built.size, :too_few_questions) if built.size < MIN_QUESTIONS
 
@@ -109,6 +110,20 @@ module Questions
 
       kase.questions.delete(question)
       reject(1, reason)
+    end
+
+    # One statement carries one question. Reading 60 cases on 2026-09-26, the weakest
+    # questions were the second and third drawn from a statement the first had used up:
+    # to ask something new they invented a detail the statement lacks, or asked an
+    # administrative one (sick-leave days during chemotherapy). The first to cite a
+    # statement keeps it.
+    def one_per_statement(kase, built)
+      built.uniq(&:recommendation).tap do |kept|
+        (built - kept).each do |repeat|
+          kase.questions.delete(repeat)
+          reject(1, :repeats_statement)
+        end
+      end
     end
 
     def reject(count, reason)

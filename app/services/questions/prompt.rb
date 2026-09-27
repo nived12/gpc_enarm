@@ -145,7 +145,7 @@ module Questions
         - Una explicación breve de por qué la correcta lo es.
         #{RATIONALE_INSTRUCTIONS}
         - El número de la recomendación en la que se basa, y una cita textual de esa
-          recomendación.
+          recomendación. Cada pregunta del caso se basa en una recomendación distinta.
         - Ni la pregunta ni las opciones mencionan cuadros, algoritmos, figuras ni escalas de
           la guía: el alumno no los ve mientras responde, y una opción que dice "según el
           algoritmo 1" delata la respuesta.

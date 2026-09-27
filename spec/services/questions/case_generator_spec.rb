@@ -20,6 +20,13 @@ RSpec.describe Questions::CaseGenerator do
       text: "Se recomienda realizar electrocardiograma de 12 derivaciones."
     )
   end
+  # Each question of a case cites its own statement, so a valid case needs two.
+  let!(:second_recommendation) do
+    create(
+      :recommendation, guideline_section: section, grade: "A",
+      text: "Se recomienda realizar electrocardiograma de 12 derivaciones en los primeros 10 minutos."
+    )
+  end
 
   def stub_model(payload)
     allow(Llm::Completion).to receive(:call).and_return(
@@ -80,7 +87,7 @@ RSpec.describe Questions::CaseGenerator do
   end
 
   it "builds a case with its questions and options" do
-    stub_model(one_case(question, question))
+    stub_model(one_case(question, question(index: 2)))
 
     result = described_class.call(guideline)
     kase = result.payload[:cases].first
@@ -95,7 +102,7 @@ RSpec.describe Questions::CaseGenerator do
   describe "the generation run" do
     it "records tokens, cases and rejections" do
       run = create(:generation_run)
-      stub_model(one_case(question, question, question(quote: "inventado")))
+      stub_model(one_case(question, question(index: 2), question(quote: "inventado")))
 
       described_class.call(guideline, run: run)
 
@@ -127,7 +134,7 @@ RSpec.describe Questions::CaseGenerator do
     end
 
     it "works without a run at all" do
-      stub_model(one_case(question, question))
+      stub_model(one_case(question, question(index: 2)))
 
       expect(described_class.call(guideline)).to be_success
     end
@@ -135,21 +142,27 @@ RSpec.describe Questions::CaseGenerator do
 
   it "writes from the window of statements it is handed" do
     later = create(:recommendation, guideline_section: section, text: "Se recomienda iniciar aspirina 300 mg.")
-    stub_model(one_case(question(quote: "iniciar aspirina 300 mg"), question(quote: "iniciar aspirina 300 mg")))
+    last = create(:recommendation, guideline_section: section, text: "Se recomienda iniciar aspirina 300 mg al llegar.")
+    stub_model(
+      one_case(
+        question(quote: "iniciar aspirina 300 mg"),
+        question(quote: "iniciar aspirina 300 mg", index: 2)
+      )
+    )
 
-    result = described_class.call(guideline, recommendations: [later])
+    result = described_class.call(guideline, recommendations: [later, last])
 
     expect(Llm::Completion).to have_received(:call) do |prompt:, **|
       expect(prompt).to include("1. Se recomienda iniciar aspirina 300 mg.")
       expect(prompt).not_to include("electrocardiograma")
     end
-    expect(result.payload[:cases].sole.questions.map(&:recommendation)).to eq([later, later])
+    expect(result.payload[:cases].sole.questions.map(&:recommendation)).to eq([later, last])
   end
 
   # The detail level and the language are the prompt's and the builder's business; this
   # only proves the generator hands them on.
   it "passes the rotation's choices through to the prompt and the saved case" do
-    stub_model(one_case(question, question))
+    stub_model(one_case(question, question(index: 2)))
 
     kase = described_class.call(guideline, detail: :full_workup, locale: "en").payload[:cases].sole
 
@@ -160,7 +173,7 @@ RSpec.describe Questions::CaseGenerator do
   end
 
   it "reads JSON the model wrapped in a markdown fence" do
-    stub_model("```json\n#{one_case(question, question).to_json}\n```")
+    stub_model("```json\n#{one_case(question, question(index: 2)).to_json}\n```")
 
     expect(described_class.call(guideline).payload[:cases].size).to eq(1)
   end
