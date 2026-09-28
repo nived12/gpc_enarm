@@ -41,6 +41,14 @@ RSpec.describe Recommendation do
       expect(build(:recommendation, text: "Se recomienda X.").readable_text).to eq("Se recomienda X.")
     end
 
+    it "is the parser's text, quote included, for a statement marked damaged" do
+      recommendation.text_damaged = true
+
+      expect(recommendation.readable_text).to eq(recommendation.text)
+      expect(recommendation.readable_quote("6 Pediatric Eye Evaluations 2007 meses"))
+        .to eq("6 Pediatric Eye Evaluations 2007 meses")
+    end
+
     it "accepts a quote from either text" do
       expect(recommendation.contains_quote?("hasta los 6 meses")).to be(true)
       expect(recommendation.contains_quote?("hasta los 6 Pediatric Eye Evaluations")).to be(true)

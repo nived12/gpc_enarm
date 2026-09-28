@@ -33,9 +33,14 @@ class Recommendation < ApplicationRecord
   scope :repair_pending, -> { where(repaired_at: nil) }
 
   # The SQL twin of #readable_text, for filters on what a reader will see.
+  # Pearl.pool filters out damaged statements first, so COALESCE agrees with it there.
   READABLE_TEXT_SQL = "COALESCE(recommendations.clean_text, recommendations.text)".freeze
 
+  # A statement marked damaged is shown as read: the model's cuts there were the least
+  # reliable of the first full run ("con CPAPn o" lost its "CPAPn").
   def readable_text
+    return text if text_damaged?
+
     clean_text.presence || text
   end
 
@@ -46,7 +51,7 @@ class Recommendation < ApplicationRecord
   # A quote taken from #text, with the same fragments removed, so it can be found (and
   # marked) inside #readable_text.
   def readable_quote(quote)
-    return quote if quote.blank? || removed_fragments.empty?
+    return quote if quote.blank? || removed_fragments.empty? || text_damaged?
 
     self.class.tidy(removed_fragments.reduce(quote) { |cut, fragment| self.class.without(cut, fragment) || cut }).squish
   end
@@ -74,7 +79,7 @@ class Recommendation < ApplicationRecord
   end
 
   def self.joins?(left, right, capital_allowed: false)
-    return true unless left&.match?(/[\p{L}\d]/) && right&.match?(/[\p{L}\d]/)
+    return true unless left.to_s.match?(/[\p{L}\d]/) && right.to_s.match?(/[\p{L}\d]/)
     return false if left.match?(/\d/) && right.match?(/\d/)
     return true if left.match?(/\d/) || right.match?(/\d/)
 

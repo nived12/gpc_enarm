@@ -87,8 +87,11 @@ RSpec.describe Gpc::StatementRepairer do
     end
 
     it "when the fragment starts inside a word, or cuts a number" do
-      refused(create(:recommendation, text: "Evaluar la salud del niño en cada consulta, grado D"), ["d del"])
-      refused(create(:recommendation, text: "Administrar 200 mg al día durante diez días de tratamiento."), ["20"])
+      refused(
+        create(:recommendation, text: "Vigilar al pacienteof the Royal College cada día en la consulta."),
+        ["of the Royal College"]
+      )
+      refused(create(:recommendation, text: "Administrar 12007 mg al día durante diez días de tratamiento."), ["2007"])
     end
 
     it "when a fragment is not in the text" do
@@ -100,9 +103,28 @@ RSpec.describe Gpc::StatementRepairer do
     end
 
     it "when a fragment is too long to be a citation, or they are too much of the statement" do
-      refused(clean, ["x" * (described_class::MAX_FRAGMENT_CHARS + 1)])
-      refused(clean, ["Se recomienda iniciar amoxicilina"])
+      refused(clean, ["SIGN #{"x" * described_class::MAX_FRAGMENT_CHARS}"])
+      refused(
+        create(:recommendation, text: "Se recomienda NICE Clinical Guideline 2019 reposo."),
+        ["NICE Clinical Guideline 2019"]
+      )
     end
+  end
+
+  # Named on the first full run: real words with broken spacing, a meaning-bearing
+  # "Solo", the statement's own pointer to a figure.
+  it "leaves in a fragment that does not look like a citation" do
+    statement = create(
+      :recommendation,
+      text: "Solo se recomienda en aque llos pacientes (cuadro 7) SIGN 2008 con fiebre."
+    )
+    stub_reply({ "1" => { "remove" => ["Solo", "aque llos", "(cuadro 7)", "SIGN 2008"] } })
+
+    described_class.call([statement])
+
+    expect(statement.reload).to have_attributes(
+      clean_text: "Solo se recomienda en aque llos pacientes (cuadro 7) con fiebre.", removed_fragments: ["SIGN 2008"]
+    )
   end
 
   it "ignores an answer that is not an object" do

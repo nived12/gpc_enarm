@@ -14,7 +14,8 @@
 # or would remove more than a third of a statement is refused, the statement left as it
 # was and unread, to be asked again. Where the bleed ate letters ("ubicacióMorri")
 # deleting cannot mend the word, and the model says so: that statement is marked
-# damaged and kept out of pearls and generation.
+# damaged, kept out of pearls and generation, and shown as the parser read it. Only a
+# fragment that looks like a citation is deleted at all (CITATION_MARKS).
 #
 # Every other statement in a batch the model answered is marked repaired, the ones it
 # left alone too, so a rerun only reads what is still unread.
@@ -24,6 +25,24 @@ module Gpc
     MAX_TOKENS = 3_000
     MAX_FRAGMENT_CHARS = 120
     MAX_REMOVED_SHARE = 1 / 3r
+
+    # What only the citation column says. Read on the first full run: the model also
+    # named real words with broken spacing ("aque llos"), a leading "Solo", and the
+    # statement's own "(cuadro 7)". A fragment with none of these marks is left in: stray
+    # margin text a student can read past beats a statement missing a word.
+    CITATION_MARKS = Regexp.union(
+      /\b(?:19[5-9]\d|20[0-3]\d)\b/,
+      /\b[1-4][+-]{1,2}(?!\w)/,
+      /Punto de buena pr|\bPBP\b|\bGRADE\b|\bSIGN\b|\bNICE\b|Shekelle|Recomendaci[oó]n (?:fuerte|d[eé]bil)|Certeza/i,
+      /\b(?:GPC|OMS|OPS|WHO|CDC|ACOG|RCOG|ACC|AHA|IMSS|CENETEC)\b/,
+      /\b(?:of|the|for|and|with|in|on|to|Guidelines?|Clinical|Practice|Society|College|Association|Network|Institute|
+          Committee|Report|Management|Prevention|Care|Health|Review|American|Canadian|British|National|Scottish|Royal|
+          Evaluations?|Pediatric|Eye|Children|Hospital|Screening|Journal|Medicine|Surgery|Group|Task|Force|Consensus|
+          Update|Disorders|Panel|Study|Steering|Protocols|Advisory|Systems|Improvement)\b/x,
+      /\A(?:Alta|Moderada|Baja|Muy baja|Rc|PBP)\z/i,
+      /\b(?:Academia|Sociedad|Colegio|Asociaci[oó]n|Gu[ií]a)\b/,
+      /\bet al\b|\b\p{Lu}\p{Ll}+,? \p{Lu}{1,2}\b/
+    )
 
     def initialize(recommendations, run: nil)
       super()
@@ -63,7 +82,7 @@ module Gpc
     # A refused answer leaves the statement unread, so a later run asks again.
     def settle(recommendation, answer)
       fragments = Array(answer.is_a?(Hash) ? answer["remove"] : nil).map { |fragment| fragment.to_s.squish }
-      fragments = fragments.compact_blank
+      fragments = fragments.compact_blank.grep(CITATION_MARKS)
       damaged = answer.is_a?(Hash) && answer["damaged"] == true
       clean = fragments.any? ? cut(recommendation.text, fragments) : nil
       tally[:read] += 1
