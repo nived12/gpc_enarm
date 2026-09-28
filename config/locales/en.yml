@@ -525,6 +525,7 @@ en:
         bake_off: "Model comparison"
         rationales: "Option rationales"
         screening: "Guideline screening for the ENARM"
+        statement_repair: "Recommendation text clean-up"
       columns:
         purpose: "Purpose"
         model: "Provider · model"

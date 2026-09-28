@@ -240,6 +240,28 @@ RSpec.describe "question bank export and import" do
       expect(Question.sole.recommendation.text).to include("electrocardiograma de 12 derivaciones")
     end
 
+    # A quote the generator took from the repaired text is only in the repaired text, and
+    # the far side has it once gpc:import_repairs has run.
+    it "finds the recommendation by a quote from its repaired text" do
+      build_bank
+      recommendation = Recommendation.sole
+      recommendation.update!(
+        text: "Se recomienda realizar SIGN 2008 electrocardiograma.",
+        clean_text: "Se recomienda realizar electrocardiograma."
+      )
+      Question.sole.update!(source_quote: "realizar electrocardiograma")
+      export
+      clear_generated
+      recommendation.update!(position: 7)
+      create(
+        :recommendation, guideline_section: recommendation.guideline_section, position: 3,
+        text: "Se recomienda vigilancia clínica estrecha."
+      )
+
+      expect(import).to be_success
+      expect(Question.sole.recommendation).to eq(recommendation)
+    end
+
     it "refuses the question when the quote is in more than one recommendation of the guideline" do
       build_bank
       export

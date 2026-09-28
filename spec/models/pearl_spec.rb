@@ -63,6 +63,22 @@ RSpec.describe Pearl do
       expect(described_class.pool).not_to include(ungraded, figure, long, evidence)
     end
 
+    it "reads the repaired text, and leaves out a statement the bleed cut letters from" do
+      repaired = statement(
+        "Se recomienda iniciar amoxicilina durante 10 SIGN 2008 días en la otitis media aguda.",
+        clean_text: "Se recomienda iniciar amoxicilina durante 10 días en la otitis media aguda."
+      )
+      damaged = statement(text_damaged: true)
+      long_until_repaired = statement(
+        "Se recomienda vigilar. #{"Scottish Intercollegiate " * 20}",
+        clean_text: "Se recomienda vigilar la evolución clínica en la consulta."
+      )
+
+      expect(described_class.pool).to include(repaired, long_until_repaired)
+      expect(described_class.pool).not_to include(damaged)
+      expect(described_class.for(repaired).answer).to eq("10 días")
+    end
+
     it "leaves out guidelines with no published case, and undated ones" do
       draft = create(
         :recommendation,

@@ -232,9 +232,15 @@ bin/coverage-check --raise        # lock in an improvement, then commit the floo
   of the same number replaced, and anything `questions:screen` has not rated in scope;
   `Questions::WindowPlan` then takes only statements screened as a general physician's
   decision. After ingesting or reparsing, run `questions:screen` before generating —
-  an unscreened guideline or statement is never generated from. The spending cap prices
-  calls from `Llm::Provider::PRICES`; changing the model means updating its price there,
-  or the cap refuses to run.
+  an unscreened guideline or statement is never generated from — and
+  `gpc:repair_statements`, which writes into `Recommendation#clean_text` the statement
+  without the citation text the PDF's grading column left inside it ("hasta los 6 2007
+  meses"). It only deletes what a model names and the code finds; `#text` stays the
+  parser's, since reparse matches rows by it. Another database gets the same repairs
+  from `gpc:export_repairs` / `gpc:import_repairs`, not from a second paid pass: a
+  question quoting the repaired text must find the same text there. The spending cap
+  prices calls from `Llm::Provider::PRICES`; changing the model means updating its
+  price there, or the cap refuses to run.
 - **`deepseek-flash` thinks before answering, and the thinking is billed as output.**
   Measured live 2026-09-20 on a real generation prompt: 5,682 output tokens, of which
   **4,638 were reasoning** and 1,044 were the answer. With `max_tokens: 4000` it spent the

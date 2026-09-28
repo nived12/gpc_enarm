@@ -26,6 +26,48 @@ RSpec.describe Recommendation do
     expect(recommendation.guideline).to eq(guideline)
   end
 
+  describe "the text a reader sees" do
+    let(:recommendation) do
+      build(
+        :recommendation,
+        text: "Explorar el reflejo rojo hasta los 6 Pediatric Eye\nEvaluations 2007 meses.",
+        clean_text: "Explorar el reflejo rojo hasta los 6 meses.",
+        removed_fragments: ["Pediatric Eye Evaluations", "2007"]
+      )
+    end
+
+    it "is the repaired text when there is one, and the parser's otherwise" do
+      expect(recommendation.readable_text).to eq("Explorar el reflejo rojo hasta los 6 meses.")
+      expect(build(:recommendation, text: "Se recomienda X.").readable_text).to eq("Se recomienda X.")
+    end
+
+    it "accepts a quote from either text" do
+      expect(recommendation.contains_quote?("hasta los 6 meses")).to be(true)
+      expect(recommendation.contains_quote?("hasta los 6 Pediatric Eye Evaluations")).to be(true)
+      expect(recommendation.contains_quote?("hasta los 12 meses")).to be(false)
+      expect(build(:recommendation, text: "Se recomienda X.").contains_quote?("Se recomienda X")).to be(true)
+    end
+
+    it "cuts a quote taken from the parser's text the way the text was cut" do
+      expect(recommendation.readable_quote("los 6 Pediatric Eye Evaluations 2007 meses")).to eq("los 6 meses")
+      expect(recommendation.readable_quote("el reflejo rojo")).to eq("el reflejo rojo")
+      expect(recommendation.readable_quote(nil)).to be_nil
+      expect(build(:recommendation).readable_quote("Se recomienda")).to eq("Se recomienda")
+    end
+
+    it "finds a fragment across a line break and whatever its case, only once" do
+      expect(described_class.without("a SIGN\n2008 b SIGN 2008", "sign 2008").squish).to eq("a b SIGN 2008")
+      expect(described_class.without("a b", "SIGN")).to be_nil
+    end
+
+    it "keeps a damaged statement out of what is generated from" do
+      intact = create(:recommendation)
+      create(:recommendation, text_damaged: true)
+
+      expect(described_class.intact).to contain_exactly(intact)
+    end
+  end
+
   describe "#figure" do
     let(:section) { create(:guideline_section) }
 

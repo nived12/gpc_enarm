@@ -120,6 +120,23 @@ RSpec.describe "Exams", type: :request do
       expect(response.body).not_to include("no es el estudio inicial")
     end
 
+    it "shows the recommendation without the citation text the PDF left inside it" do
+      exam.exam_questions.find_by(position: 1).question.recommendation.update!(
+        text: "Se recomienda realizar electrocardiograma de 12 Scottish Intercollegiate derivaciones al llegar.",
+        clean_text: "Se recomienda realizar electrocardiograma de 12 derivaciones al llegar.",
+        removed_fragments: ["Scottish Intercollegiate"]
+      )
+      exam.exam_questions.find_by(position: 1).question.update!(
+        source_quote: "electrocardiograma de 12 Scottish Intercollegiate derivaciones"
+      )
+      answer(exam, 1, "Troponina I")
+
+      get exam_question_path(exam, 1)
+
+      expect(response.body).to include("<mark>electrocardiograma de 12 derivaciones</mark> al llegar.")
+      expect(response.body).not_to include("Scottish")
+    end
+
     it "explains the answer on the same page once it is given, with the cited figure" do
       answer(exam, 1, "Troponina I")
       expect(response).to redirect_to(exam_question_path(exam, 1))

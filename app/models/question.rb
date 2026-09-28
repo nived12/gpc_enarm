@@ -51,7 +51,7 @@ class Question < ApplicationRecord
   # quotes. Neither normalisation changes a word, so a paraphrase still cannot pass.
   def quote_must_come_from_the_recommendation
     return if source_quote.blank? || recommendation.nil?
-    return if self.class.quote_in?(recommendation.text, source_quote)
+    return if recommendation.contains_quote?(source_quote)
 
     errors.add(:source_quote, :not_in_recommendation)
   end

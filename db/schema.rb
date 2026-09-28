@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_26_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_28_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -322,19 +322,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_130000) do
 
   create_table "recommendations", force: :cascade do |t|
     t.string "citation"
+    t.text "clean_text"
     t.datetime "created_at", null: false
     t.string "decision_kind"
     t.string "grade"
     t.bigint "guideline_section_id", null: false
     t.string "label", null: false
     t.integer "position", null: false
+    t.jsonb "removed_fragments", default: [], null: false
+    t.datetime "repaired_at"
     t.string "scale"
     t.text "text", null: false
+    t.boolean "text_damaged", default: false, null: false
     t.datetime "updated_at", null: false
     t.index ["decision_kind"], name: "index_recommendations_on_decision_kind"
     t.index ["grade"], name: "index_recommendations_on_grade"
     t.index ["guideline_section_id", "position"], name: "index_recommendations_on_guideline_section_id_and_position", unique: true
     t.index ["guideline_section_id"], name: "index_recommendations_on_guideline_section_id"
+    t.index ["repaired_at"], name: "index_recommendations_on_repaired_at"
     t.index ["scale"], name: "index_recommendations_on_scale"
   end
 

@@ -173,7 +173,9 @@ module Questions
     # Numbered from 1. The model cites a statement by this number, and
     # Questions::CaseBuilder maps it back to the row.
     def listing
-      recommendations.map.with_index(1) { |recommendation, i| "#{i}. #{recommendation.text.squish}" }.join("\n")
+      recommendations.map.with_index(1) do |recommendation, i|
+        "#{i}. #{recommendation.readable_text.squish}"
+      end.join("\n")
     end
 
     def questions_per_case

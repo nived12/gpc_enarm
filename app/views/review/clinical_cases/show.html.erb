@@ -108,7 +108,7 @@
         <%# The quoted span is marked inside the full recommendation, so a reviewer can see
             at a glance whether the question used it fairly or lifted it out of context. %>
         <p class="vignette mt-4 text-sm leading-loose text-ink">
-          <%= highlighted(question.recommendation.text, question.source_quote) %>
+          <%= highlighted(question.recommendation.readable_text, question.recommendation.readable_quote(question.source_quote)) %>
         </p>
 
         <%# The figure the statement points at, as the student will meet it: part of the

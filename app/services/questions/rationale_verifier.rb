@@ -93,7 +93,7 @@ module Questions
       <<~TEXT
         Pregunta #{index}: #{question.text}
         #{options.join("\n")}
-        Recomendación citada: #{question.recommendation.text.squish}
+        Recomendación citada: #{question.recommendation.readable_text.squish}
       TEXT
     end
 
