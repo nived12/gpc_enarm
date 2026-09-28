@@ -77,6 +77,7 @@ RSpec.describe Pearl do
       expect(described_class.pool).to include(repaired, long_until_repaired)
       expect(described_class.pool).not_to include(damaged)
       expect(described_class.for(repaired).answer).to eq("10 días")
+      expect(described_class.for(damaged)).to be_nil
     end
 
     it "leaves out guidelines with no published case, and undated ones" do

@@ -185,7 +185,7 @@ module Questions
     end
 
     def excerpt(statement)
-      statement.text.squish.truncate(MAX_STATEMENT_CHARS)
+      statement.readable_text.squish.truncate(MAX_STATEMENT_CHARS)
     end
   end
 end

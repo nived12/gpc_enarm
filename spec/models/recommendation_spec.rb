@@ -55,9 +55,33 @@ RSpec.describe Recommendation do
       expect(build(:recommendation).readable_quote("Se recomienda")).to eq("Se recomienda")
     end
 
-    it "finds a fragment across a line break and whatever its case, only once" do
-      expect(described_class.without("a SIGN\n2008 b SIGN 2008", "sign 2008").squish).to eq("a b SIGN 2008")
-      expect(described_class.without("a b", "SIGN")).to be_nil
+    it "cuts a quote next to punctuation the way the text was tidied" do
+      bled = build(
+        :recommendation, text: "hasta los 6 meses 2007, luego", removed_fragments: ["2007"],
+        clean_text: "hasta los 6 meses, luego"
+      )
+
+      expect(bled.readable_quote("6 meses 2007, luego")).to eq("6 meses, luego")
+    end
+
+    describe ".without" do
+      it "finds a fragment across a line break and whatever its case" do
+        expect(described_class.without("a SIGN\n2008 b", "sign 2008").squish).to eq("a b")
+        expect(described_class.without("a b", "SIGN")).to be_nil
+      end
+
+      it "cuts a fragment only where it stands once, clear of its neighbours" do
+        expect(described_class.without("Desde 2007 hasta 6 2007 meses", "2007")).to be_nil
+        expect(described_class.without("la salud del niño, grado D", "D").squish).to eq("la salud del niño, grado")
+        expect(described_class.without("Administrar 200 mg", "20")).to be_nil
+      end
+
+      it "cuts bleed glued to a word by a capital or a digit, not through a word" do
+        expect(described_class.without("manejo integralThe College y", "The College").squish).to eq("manejo integral y")
+        expect(described_class.without("y evitar2019 desarrollo", "2019").squish).to eq("y evitar desarrollo")
+        expect(described_class.without("de(Consensus ofrecer", "Consensus of")).to be_nil
+        expect(described_class.without("el espectrohite del", "hite")).to be_nil
+      end
     end
 
     it "keeps a damaged statement out of what is generated from" do

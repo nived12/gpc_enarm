@@ -10,6 +10,5 @@ class AddRepairToRecommendations < ActiveRecord::Migration[8.1]
       t.boolean :text_damaged, null: false, default: false
       t.datetime :repaired_at
     end
-    add_index :recommendations, :repaired_at
   end
 end

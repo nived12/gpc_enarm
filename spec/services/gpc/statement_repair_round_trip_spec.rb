@@ -23,11 +23,13 @@ RSpec.describe "Moving statement repairs between databases" do
     # rows, and one statement it read differently.
     Recommendation.delete_all
     rebuilt = create(:recommendation, guideline_section: section, text: text)
+    repeated = create(:recommendation, guideline_section: create(:guideline_section, guideline: guideline), text: text)
     create(:recommendation, guideline_section: section, text: "Otra lectura del parser.")
 
     result = Gpc::StatementRepairImporter.call(path)
 
     expect(result.payload).to eq(applied: 1, missing: 1)
+    expect(repeated.reload.clean_text).to eq("Realizar el reflejo rojo hasta los 6 meses.")
     expect(rebuilt.reload).to have_attributes(
       clean_text: "Realizar el reflejo rojo hasta los 6 meses.", removed_fragments: ["2007"],
       text_damaged: false, repaired_at: be_present

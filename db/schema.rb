@@ -339,7 +339,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000000) do
     t.index ["grade"], name: "index_recommendations_on_grade"
     t.index ["guideline_section_id", "position"], name: "index_recommendations_on_guideline_section_id_and_position", unique: true
     t.index ["guideline_section_id"], name: "index_recommendations_on_guideline_section_id"
-    t.index ["repaired_at"], name: "index_recommendations_on_repaired_at"
     t.index ["scale"], name: "index_recommendations_on_scale"
   end
 

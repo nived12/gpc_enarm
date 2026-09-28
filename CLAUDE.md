@@ -238,7 +238,8 @@ bin/coverage-check --raise        # lock in an improvement, then commit the floo
   meses"). It only deletes what a model names and the code finds; `#text` stays the
   parser's, since reparse matches rows by it. Another database gets the same repairs
   from `gpc:export_repairs` / `gpc:import_repairs`, not from a second paid pass: a
-  question quoting the repaired text must find the same text there. The spending cap
+  question quoting the repaired text must find the same text there, so
+  `gpc:import_repairs` runs before any `questions:import`. The spending cap
   prices calls from `Llm::Provider::PRICES`; changing the model means updating its
   price there, or the cap refuses to run.
 - **`deepseek-flash` thinks before answering, and the thinking is billed as output.**

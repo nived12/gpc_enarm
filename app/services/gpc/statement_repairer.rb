@@ -9,14 +9,15 @@
 # The model is shown a batch of statements and names, for each one that needs it, the
 # fragments to delete, copied from the text. It never writes the statement: the code
 # deletes what it named and nothing else, so the worst a wrong answer can do is remove a
-# phrase. That is bounded too: a fragment must be found in the text, and a reply that
-# would remove more than a third of a statement, or cut one where it runs into the next
-# word, is refused and the statement left as it was. Where the bleed ate letters
-# ("ubicacióMorri") deleting cannot mend the word, and the model says so: that statement
-# is marked damaged and kept out of pearls and generation.
+# phrase. That is bounded too: a fragment must stand in the text exactly once, clear of
+# the words and numbers around it (Recommendation.without), and a reply that fails that
+# or would remove more than a third of a statement is refused, the statement left as it
+# was and unread, to be asked again. Where the bleed ate letters ("ubicacióMorri")
+# deleting cannot mend the word, and the model says so: that statement is marked
+# damaged and kept out of pearls and generation.
 #
-# Every statement in a batch the model answered is marked repaired, the ones it left
-# alone too, so a rerun only reads what is still unread.
+# Every other statement in a batch the model answered is marked repaired, the ones it
+# left alone too, so a rerun only reads what is still unread.
 module Gpc
   class StatementRepairer < ApplicationService
     MAX_BATCH_CHARS = 8_000
@@ -59,26 +60,20 @@ module Gpc
       @tally ||= { read: 0, repaired: 0, damaged: 0, refused: 0 }
     end
 
+    # A refused answer leaves the statement unread, so a later run asks again.
     def settle(recommendation, answer)
-      fragments = Array(answer.is_a?(Hash) ? answer["remove"] : nil).map do |fragment|
-        fragment.to_s.squish
-      end.compact_blank
+      fragments = Array(answer.is_a?(Hash) ? answer["remove"] : nil).map { |fragment| fragment.to_s.squish }
+      fragments = fragments.compact_blank
       damaged = answer.is_a?(Hash) && answer["damaged"] == true
       clean = fragments.any? ? cut(recommendation.text, fragments) : nil
-      refused = fragments.any? && clean.nil?
+      tally[:read] += 1
+      return tally[:refused] += 1 if fragments.any? && clean.nil?
 
       recommendation.update_columns(
-        clean_text: clean, removed_fragments: clean ? fragments : [],
-        text_damaged: damaged && !refused, repaired_at: Time.current
+        clean_text: clean, removed_fragments: clean ? fragments : [], text_damaged: damaged, repaired_at: Time.current
       )
-      count(clean, damaged && !refused, refused)
-    end
-
-    def count(clean, damaged, refused)
-      tally[:read] += 1
       tally[:repaired] += 1 if clean
       tally[:damaged] += 1 if damaged
-      tally[:refused] += 1 if refused
     end
 
     # The text without the fragments, or nil when one is not in it, is too long to be a
@@ -88,25 +83,8 @@ module Gpc
       return if fragments.sum(&:length) > text.squish.length * MAX_REMOVED_SHARE
 
       clean = text
-      fragments.each do |fragment|
-        return if ends_inside_a_word?(clean, fragment)
-
-        clean = Recommendation.without(clean, fragment) or return
-      end
-      tidy(clean)
-    end
-
-    # "de(Consensus 50 Study ofrecer": a fragment named as ending in "of" takes the start
-    # of the next word with it. Where a fragment's last letter runs straight into the
-    # next word, where it ends cannot be told, so nothing is removed.
-    def ends_inside_a_word?(text, fragment)
-      match = text.match(Recommendation.fragment_pattern(fragment))
-      match.present? && match[0].match?(/\p{L}\z/) && match.post_match.match?(/\A\p{L}/)
-    end
-
-    # Deleting leaves doubled spaces and a space before punctuation; line breaks stay.
-    def tidy(text)
-      text.gsub(/[ \t]{2,}/, " ").gsub(/ +([,.;:)])/, '\1').gsub(/\( +/, "(").gsub(/ +$/, "").strip
+      fragments.each { |fragment| clean = Recommendation.without(clean, fragment) or return }
+      Recommendation.tidy(clean)
     end
 
     # The reply as a Hash, or nil with the reason added to the errors.

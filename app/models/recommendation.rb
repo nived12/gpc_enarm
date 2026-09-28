@@ -48,19 +48,42 @@ class Recommendation < ApplicationRecord
   def readable_quote(quote)
     return quote if quote.blank? || removed_fragments.empty?
 
-    removed_fragments.reduce(quote) { |cut, fragment| self.class.without(cut, fragment) || cut }.squish
+    self.class.tidy(removed_fragments.reduce(quote) { |cut, fragment| self.class.without(cut, fragment) || cut }).squish
   end
 
-  # The text with the first occurrence of a fragment taken out, whatever whitespace the
-  # fragment spans (a model reads the text with its line breaks collapsed). Nil when the
-  # fragment is not there.
+  # The text with a fragment taken out, whatever whitespace the fragment spans (a model
+  # reads the text with its line breaks collapsed). Nil unless the fragment stands in the
+  # text exactly once clear of its neighbours: a year the statement really uses beside
+  # one that bled in, or the "d" of "salud" for the grade "D", must not be the one cut.
   def self.without(text, fragment)
-    match = text.match(fragment_pattern(fragment)) or return
-    "#{match.pre_match} #{match.post_match}"
+    pattern = Regexp.new(fragment.split.map { |word| Regexp.escape(word) }.join("\\s+"), Regexp::IGNORECASE)
+    clear = text.to_enum(:scan, pattern).map { Regexp.last_match }.select { |match| clear?(match) }
+    return unless clear.one?
+
+    "#{clear.first.pre_match} #{clear.first.post_match}"
   end
 
-  def self.fragment_pattern(fragment)
-    Regexp.new(fragment.split.map { |word| Regexp.escape(word) }.join("\\s+"), Regexp::IGNORECASE)
+  # Where the bleed is glued to the statement, the join still shows: a lowercase letter
+  # running into a capital ("integralThe College"), or a letter into a digit
+  # ("evitar2019"). A letter into a lowercase letter, or a digit into a digit ("20" out of
+  # "200 mg"), is a cut through a word or a number.
+  def self.clear?(match)
+    first = match[0][0]
+    last = match[0][-1]
+    joins?(match.pre_match[-1], first, capital_allowed: true) && joins?(last, match.post_match[0])
+  end
+
+  def self.joins?(left, right, capital_allowed: false)
+    return true unless left&.match?(/[\p{L}\d]/) && right&.match?(/[\p{L}\d]/)
+    return false if left.match?(/\d/) && right.match?(/\d/)
+    return true if left.match?(/\d/) || right.match?(/\d/)
+
+    capital_allowed && left.match?(/\p{Ll}/) && right.match?(/\p{Lu}/)
+  end
+
+  # Deleting leaves doubled spaces and a space before punctuation; line breaks stay.
+  def self.tidy(text)
+    text.gsub(/[ \t]{2,}/, " ").gsub(/ +([,.;:)])/, '\\1').gsub(/\( +/, "(").gsub(/ +$/, "").strip
   end
 
   def cited_as

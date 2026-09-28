@@ -62,8 +62,11 @@ class Pearl
                   .where.not("#{Recommendation::READABLE_TEXT_SQL} ~* ?", FIGURE_WORDS)
   end
 
-  # Nil when neither rule finds a phrase to hide.
+  # Nil when neither rule finds a phrase to hide, and for a statement marked damaged
+  # after a student already held its card.
   def self.for(recommendation)
+    return if recommendation.text_damaged?
+
     text = recommendation.readable_text
     range = quantity_range(text) || action_range(text)
     new(recommendation, range) if range

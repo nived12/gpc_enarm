@@ -68,13 +68,27 @@ RSpec.describe Gpc::StatementRepairer do
     expect(eaten.reload).to have_attributes(clean_text: nil, text_damaged: true)
   end
 
-  describe "a reply it refuses, leaving the statement as the parser read it" do
+  describe "a reply it refuses, leaving the statement as the parser read it and unread" do
     def refused(statement, fragments)
       stub_reply({ "1" => { "remove" => fragments, "damaged" => true } })
       payload = described_class.call([statement]).payload
       statement.reload
-      expect(statement).to have_attributes(clean_text: nil, removed_fragments: [], text_damaged: false)
+      expect(statement).to have_attributes(
+        clean_text: nil, removed_fragments: [], text_damaged: false,
+        repaired_at: nil
+      )
       payload
+    end
+
+    it "when the fragment stands in the text twice, as a year the statement uses might" do
+      twice = create(:recommendation, text: "Desde 2007 se vacuna a los recién nacidos hasta los 6 2007 meses.")
+
+      expect(refused(twice, ["2007"])).to include(refused: 1)
+    end
+
+    it "when the fragment starts inside a word, or cuts a number" do
+      refused(create(:recommendation, text: "Evaluar la salud del niño en cada consulta, grado D"), ["d del"])
+      refused(create(:recommendation, text: "Administrar 200 mg al día durante diez días de tratamiento."), ["20"])
     end
 
     it "when a fragment is not in the text" do

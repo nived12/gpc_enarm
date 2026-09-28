@@ -1,6 +1,9 @@
 # Applies a file written by Gpc::StatementRepairExporter. A statement is found by its
 # guideline and the digest of its text; one this database's parser wrote differently is
 # counted as missing and left for gpc:repair_statements to read here.
+#
+# Run it before Questions::Importer: a question generated from the repaired text quotes
+# words the parser's text does not have in that order, and the importer refuses it.
 module Gpc
   class StatementRepairImporter < ApplicationService
     def initialize(path)
@@ -17,7 +20,7 @@ module Gpc
           JSON.parse(line)
         end.group_by { |repair| repair["catalog_key"] }.each do |key, repairs|
           by_digest = statements_of(key)
-          repairs.each { |repair| apply(by_digest[repair["text_digest"]], repair, tally) }
+          repairs.each { |repair| apply(by_digest.fetch(repair["text_digest"], []), repair, tally) }
         end
       end
 
@@ -30,15 +33,15 @@ module Gpc
 
     def statements_of(catalog_key)
       Recommendation.joins(guideline_section: :guideline).where(guidelines: { catalog_key: catalog_key })
-                    .index_by { |recommendation| StatementRepairExporter.digest(recommendation.text) }
+                    .group_by { |recommendation| StatementRepairExporter.digest(recommendation.text) }
     end
 
-    def apply(recommendation, repair, tally)
-      return tally[:missing] += 1 if recommendation.nil?
+    # A guideline can repeat a statement word for word in two sections; both get it.
+    def apply(recommendations, repair, tally)
+      return tally[:missing] += 1 if recommendations.empty?
 
-      recommendation.update_columns(
-        **repair.slice(*StatementRepairExporter::ATTRIBUTES).symbolize_keys,
-                                            repaired_at: Time.current
+      Recommendation.where(id: recommendations).update_all(
+        **repair.slice(*StatementRepairExporter::ATTRIBUTES).symbolize_keys, repaired_at: Time.current
       )
       tally[:applied] += 1
     end
