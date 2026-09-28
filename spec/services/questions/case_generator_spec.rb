@@ -66,6 +66,12 @@ RSpec.describe Questions::CaseGenerator do
     expect(described_class.call(guideline)).to be_failure
   end
 
+  it "takes by default no statement the PDF's citation column cut letters from" do
+    recommendation.update!(text_damaged: true)
+
+    expect(described_class.call(guideline)).to be_failure
+  end
+
   it "passes the provider's failure through rather than inventing a case" do
     allow(Llm::Completion).to receive(:call).and_return(
       ApplicationService::Response.new(

@@ -51,19 +51,24 @@ class Pearl
   end
 
   # The statements a pearls session draws from: actionable, graded, from a dated
-  # guideline that has published cases, short enough to read in one breath, and not
-  # leaning on a figure.
+  # guideline that has published cases, short enough to read in one breath, not
+  # leaning on a figure, and not one the PDF's citation column cut letters out of.
   def self.pool
     Recommendation.actionable.joins(guideline_section: :guideline)
                   .where(guideline_sections: { guideline_id: ClinicalCase.status_published.select(:guideline_id) })
                   .where.not(grade: [nil, ""]).where.not(guidelines: { year: nil })
-                  .where("char_length(recommendations.text) BETWEEN ? AND ?", LENGTH.min, LENGTH.max)
-                  .where.not("recommendations.text ~* ?", FIGURE_WORDS)
+                  .intact
+                  .where("char_length(#{Recommendation::READABLE_TEXT_SQL}) BETWEEN ? AND ?", LENGTH.min, LENGTH.max)
+                  .where.not("#{Recommendation::READABLE_TEXT_SQL} ~* ?", FIGURE_WORDS)
   end
 
-  # Nil when neither rule finds a phrase to hide.
+  # Nil when neither rule finds a phrase to hide, and for a statement marked damaged
+  # after a student already held its card.
   def self.for(recommendation)
-    range = quantity_range(recommendation.text) || action_range(recommendation.text)
+    return if recommendation.text_damaged?
+
+    text = recommendation.readable_text
+    range = quantity_range(text) || action_range(text)
     new(recommendation, range) if range
   end
 
@@ -101,5 +106,5 @@ class Pearl
 
   private
 
-  def text = recommendation.text
+  def text = recommendation.readable_text
 end

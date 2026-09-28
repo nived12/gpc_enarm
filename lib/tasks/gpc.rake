@@ -56,6 +56,46 @@ namespace :gpc do
     puts "Ahora corre gpc:reparse, taxonomy:seed y gpc:link para reconstruir lo derivado."
   end
 
+  desc "Take citation text the PDF parser left inside statements out of them: " \
+       "rake gpc:repair_statements[count] (count: statements)"
+  task :repair_statements, [:count] => :environment do |_task, args|
+    provider = Llm::Provider.for(:verifier)
+    abort("Falta la clave del verificador. Revisa .env") unless provider.configured?
+
+    run = GenerationRun.create!(
+      purpose: "statement_repair", provider: provider.name, model: provider.model, started_at: Time.current
+    )
+    pending = Recommendation.actionable.repair_pending.order(:guideline_section_id, :position)
+    totals = Hash.new(0)
+    failures_in_a_row = 0
+    Gpc::StatementRepairer.batches(pending.limit((args[:count] || 100).to_i).to_a).each do |batch|
+      result = Gpc::StatementRepairer.call(batch, run: run)
+      result.payload.each { |key, value| totals[key] += value }
+      puts "#{batch.size} leídas#{" — #{result.errors.full_messages.to_sentence}" if result.failure?}"
+      failures_in_a_row = result.success? ? 0 : failures_in_a_row + 1
+      break if failures_in_a_row == 3
+    end
+
+    run.update!(status: failures_in_a_row == 3 ? "failed" : "completed", finished_at: Time.current)
+    puts "\n#{totals.map { |key, value| "#{key}=#{value}" }.join(" ")} · pendientes #{pending.count} · " \
+         "llamadas=#{run.calls} costo=$#{format("%.4f", run.cost_usd)}"
+    puts "Detenida tras 3 fallas seguidas; no se reintentó." if run.status_failed?
+  end
+
+  desc "Write the statement repairs to a file another database can apply [path]"
+  task :export_repairs, [:path] => :environment do |_task, args|
+    result = Gpc::StatementRepairExporter.call(args[:path] || "tmp/statement-repairs.jsonl.gz")
+    puts "#{result.payload[:path]} · #{result.payload[:statements]} recomendaciones"
+  end
+
+  desc "Apply a file written by gpc:export_repairs to this database [path]"
+  task :import_repairs, [:path] => :environment do |_task, args|
+    result = Gpc::StatementRepairImporter.call(args[:path] || "tmp/statement-repairs.jsonl.gz")
+    abort(result.errors.full_messages.to_sentence) unless result.success?
+
+    puts "aplicadas #{result.payload[:applied]} · sin encontrar #{result.payload[:missing]}"
+  end
+
   desc "Re-read stored section bodies through the current parser, without touching the site"
   task reparse: :environment do
     result = Gpc::Reparser.call.payload

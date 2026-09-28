@@ -84,7 +84,7 @@ module Questions
         Pregunta #{index}: #{question.text}
         #{options.join("\n")}
         Por qué la correcta lo es: #{question.explanation}
-        Recomendación citada: #{question.recommendation.text.squish}
+        Recomendación citada: #{question.recommendation.readable_text.squish}
       TEXT
     end
 

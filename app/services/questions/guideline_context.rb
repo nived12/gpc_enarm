@@ -15,9 +15,9 @@ module Questions
     def to_s
       cited = questions.map(&:recommendation_id)
       guideline_id = questions.first.recommendation.guideline_section.guideline_id
-      Recommendation.actionable.where(guideline_sections: { guideline_id: guideline_id })
+      Recommendation.actionable.intact.where(guideline_sections: { guideline_id: guideline_id })
                     .where.not(id: cited).order(:id).limit(STATEMENTS)
-                    .map { |recommendation| "- #{recommendation.text.squish}" }.join("\n")
+                    .map { |recommendation| "- #{recommendation.readable_text.squish}" }.join("\n")
     end
 
     private

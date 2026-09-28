@@ -54,7 +54,7 @@ module Questions
     end
 
     def uncited
-      Recommendation.actionable.decision_general_practice
+      Recommendation.actionable.decision_general_practice.intact
                     .where(guideline_sections: { guideline_id: guidelines.select(:id) })
                     .where.not(id: Question.where.not(recommendation_id: nil).select(:recommendation_id))
                     .select("recommendations.*, guideline_sections.guideline_id AS source_guideline_id")

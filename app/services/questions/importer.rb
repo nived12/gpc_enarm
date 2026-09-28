@@ -195,9 +195,9 @@ module Questions
       guideline = find_by!(Guideline, :catalog_key, reference["catalog_key"], "la guía")
       at_path = guideline.guideline_sections.find_by(external_id: reference["section"])
         &.recommendations&.find_by(position: reference["position"])
-      return at_path if quote.blank? || (at_path && Question.quote_in?(at_path.text, quote))
+      return at_path if quote.blank? || at_path&.contains_quote?(quote)
 
-      by_quote = guideline.recommendations.select { |candidate| Question.quote_in?(candidate.text, quote) }
+      by_quote = guideline.recommendations.select { |candidate| candidate.contains_quote?(quote) }
       return by_quote.sole if by_quote.one?
 
       at_path || missing(

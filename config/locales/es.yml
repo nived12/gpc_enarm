@@ -527,6 +527,7 @@ es:
         bake_off: "Comparación de modelos"
         rationales: "Porqués de las opciones"
         screening: "Revisión de guías para el ENARM"
+        statement_repair: "Limpieza del texto de las recomendaciones"
       columns:
         purpose: "Propósito"
         model: "Proveedor · modelo"

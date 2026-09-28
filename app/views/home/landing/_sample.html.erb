@@ -54,7 +54,7 @@
               <% end %>
               <p class="text-xs font-medium text-ink-muted" lang="<%= I18n.locale %>"><%= t("landing.sample.source") %></p>
             </div>
-            <p class="vignette mt-3 text-sm leading-loose text-ink"><%= highlighted(recommendation.text, question.source_quote) %></p>
+            <p class="vignette mt-3 text-sm leading-loose text-ink"><%= highlighted(recommendation.readable_text, recommendation.readable_quote(question.source_quote)) %></p>
             <div class="numeric mt-3 space-y-0.5 text-xs leading-relaxed text-ink-faint">
               <p><%= question.citation %></p>
               <p>

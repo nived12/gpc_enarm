@@ -50,6 +50,15 @@ RSpec.describe Question do
       expect(question).to be_valid
     end
 
+    it "accepts a quote from the repaired text, which the parser's text does not contain" do
+      bled = create(
+        :recommendation, text: "Se recomienda realizar SIGN 2008 electrocardiograma.",
+        clean_text: "Se recomienda realizar electrocardiograma."
+      )
+
+      expect(build(:question, recommendation: bled, source_quote: "realizar electrocardiograma")).to be_valid
+    end
+
     it "accepts a quote the model lowercased to fit its own sentence" do
       question = build(
         :question, recommendation: recommendation,

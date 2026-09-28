@@ -22,7 +22,7 @@
     </div>
 
     <p class="vignette mt-4 text-sm leading-loose text-ink" lang="es">
-      <%= highlighted(recommendation.text, question.source_quote) %>
+      <%= highlighted(recommendation.readable_text, recommendation.readable_quote(question.source_quote)) %>
     </p>
 
     <%# The figure the statement sends the reader to — an algorithm, a criteria table.

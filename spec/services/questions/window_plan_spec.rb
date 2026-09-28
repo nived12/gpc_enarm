@@ -57,4 +57,11 @@ RSpec.describe Questions::WindowPlan do
     expect(statements.size).to eq(2)
     expect(statements).not_to include(specialist)
   end
+
+  it "leaves out a statement the PDF's citation column cut letters from" do
+    guideline = guideline_with(2)
+    damaged = create(:recommendation, guideline_section: guideline.guideline_sections.first, text_damaged: true)
+
+    expect(described_class.new(Guideline.generatable).windows.flat_map(&:last)).not_to include(damaged)
+  end
 end
