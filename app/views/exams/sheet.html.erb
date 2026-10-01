@@ -19,7 +19,7 @@
   <section class="mt-12 border-t border-line pt-10 first-of-type:border-0 first-of-type:pt-0" lang="<%= clinical_case.locale %>">
     <% group.each_with_index do |exam_question, index| %>
       <article id="<%= dom_id(exam_question) %>" class="scroll-mt-44 <%= "mt-10 border-t border-line pt-8" unless index.zero? %>">
-        <h2 class="numeric text-xl font-semibold text-accent" lang="<%= I18n.locale %>"><%= t("exams.sheet.question_heading", number: exam_question.position) %></h2>
+        <h2 class="text-xl font-semibold text-accent" lang="<%= I18n.locale %>"><%= t("exams.sheet.question_heading", number: exam_question.position) %></h2>
         <% if index.zero? %>
           <p class="vignette mt-4 text-ink"><%= clinical_case.stem %></p>
           <% if clinical_case.clinical_image&.file&.attached? %>
