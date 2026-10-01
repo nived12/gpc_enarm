@@ -298,6 +298,23 @@ RSpec.describe "Exams", type: :request do
       expect(response.body).not_to include(I18n.t("exams.feedback.source"), "<mark>", I18n.t("exams.question.wrong"))
     end
 
+    it "heads every question as the real booklet does, and states the real conditions" do
+      get exam_path(exam)
+      expect(response.body).to include(*(1..3).map { |n| I18n.t("exams.sheet.question_heading", number: n) })
+
+      get new_exam_path
+      expect(response.body).to include(I18n.t("exams.new.mock.imperfect_options"))
+    end
+
+    it "warns once, twenty minutes before the end, and not before" do
+      get exam_path(exam)
+      expect(response.body).to match(/role="status" id="final_warning_exam_#{exam.id}"\s*>/)
+
+      stub_const("Exam::FINAL_WARNING_SECONDS", 60)
+      get exam_path(exam)
+      expect(response.body).to match(/id="final_warning_exam_#{exam.id}"\s*hidden>/)
+    end
+
     it "saves each choice in place, in any order, and a change of mind replaces it" do
       choose(3, "Troponina I")
       expect(response.media_type).to eq("text/vnd.turbo-stream.html")
@@ -341,6 +358,7 @@ RSpec.describe "Exams", type: :request do
       patch complete_exam_path(exam)
       follow_redirect!
       expect(response.body).to include("33.3%", I18n.t("exams.results.tally", correct: 1, total: 3))
+      expect(response.body).to include(I18n.t("exams.results.pace", seconds: 0, real: 77))
 
       get exam_question_path(exam, 3)
       expect(response.body).to include(I18n.t("exams.question.unanswered"), I18n.t("exams.feedback.source"))

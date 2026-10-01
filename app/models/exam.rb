@@ -41,6 +41,17 @@ class Exam < ApplicationRecord
   SUGGESTED_SECONDS_PER_QUESTION = 75
   PACES = [60, 75, 90, 120].freeze
 
+  # The real answer sheet's split, 70 low, 140 medium and 70 high of 280 (a candidate's
+  # 2026 sheet). Only the exam-length modes follow it; see Exams::Builder#by_difficulty.
+  DIFFICULTY_MIX = { "low" => 0.25, "medium" => 0.5, "high" => 0.25 }.freeze
+
+  # The real sitting announces the time once, twenty minutes before the end; the
+  # exam-length modes warn at the same moment.
+  FINAL_WARNING_SECONDS = 20 * 60
+
+  # Six hours for 280 questions, rounded down.
+  REAL_SECONDS_PER_QUESTION = 77
+
   validates :question_count, numericality: { greater_than: 0 }
   validates :seconds_per_question, inclusion: { in: PACES }, allow_nil: true
 
@@ -77,6 +88,11 @@ class Exam < ApplicationRecord
 
   def remaining_seconds
     [time_limit_seconds - current_elapsed, 0].max if time_limit_seconds
+  end
+
+  # Only a timed rehearsal of the real exam gets the real sitting's one warning.
+  def final_warning_seconds
+    FINAL_WARNING_SECONDS if time_limit_seconds && EXAM_LENGTH_MODES.include?(mode)
   end
 
   def time_up?

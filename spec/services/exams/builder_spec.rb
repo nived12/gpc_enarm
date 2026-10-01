@@ -92,6 +92,25 @@ RSpec.describe Exams::Builder do
     )
   end
 
+  describe "the real exam's difficulty mix" do
+    before { stub_const("Exam::QUESTION_COUNTS", Exam::QUESTION_COUNTS.merge("full_exam" => 8)) }
+
+    it "draws a quarter low, half medium and a quarter high on an exam-length mode" do
+      %w[low medium high].each { |level| 6.times { create(:published_case, difficulty: level, questions_count: 1) } }
+
+      exam = build(mode: "full_exam").payload[:exam]
+
+      expect(cases_in(exam).map(&:difficulty).tally).to eq("low" => 2, "medium" => 4, "high" => 2)
+    end
+
+    it "falls back to the plain draw when the bank is short of a level" do
+      8.times { create(:published_case, difficulty: "low", questions_count: 1) }
+      create(:published_case, difficulty: "high", questions_count: 1)
+
+      expect(build(mode: "full_exam").payload[:exam].question_count).to eq(8)
+    end
+  end
+
   it "takes the student's own conditions, where no clock at all is a choice" do
     create(:published_case, questions_count: 2)
 

@@ -97,9 +97,33 @@ module Exams
     # over by as little as a case allows, as the draw always did.
     def pick
       rows = own_topics_first(ordered(candidates))
-      quotas = exact_quotas(rows.map(&:last).tally)
-      chosen = quotas ? rows.select { |row| (quotas[row.last] -= 1) >= 0 } : overshoot(rows)
+      chosen = by_difficulty(rows) || take(rows, target)
       filters["interleave"] ? chosen : blocked(chosen)
+    end
+
+    def take(rows, wanted)
+      quotas = exact_quotas(rows.map(&:last).tally, wanted)
+      quotas ? rows.select { |row| (quotas[row.last] -= 1) >= 0 } : overshoot(rows, wanted)
+    end
+
+    # A rehearsal of the real exam takes its difficulty mix too — the 2026 answer sheet
+    # was 70 low, 140 medium and 70 high of 280 — drawn level by level from the already
+    # interleaved order, so the levels stay mixed through the exam. A bank short of any
+    # level falls back to the plain draw rather than handing over a short exam.
+    def by_difficulty(rows)
+      return unless Exam::EXAM_LENGTH_MODES.include?(mode)
+
+      wanted = difficulty_targets
+      levels = rows.group_by { |row| row[2] }
+      return if wanted.any? { |level, count| levels.fetch(level, []).sum(&:last) < count }
+
+      kept = wanted.flat_map { |level, count| take(levels[level], count) }.to_set
+      rows.select { |row| kept.include?(row) }
+    end
+
+    def difficulty_targets
+      low, high = Exam::DIFFICULTY_MIX.values_at("low", "high").map { |share| (target * share).round }
+      { "low" => low, "medium" => target - low - high, "high" => high }
     end
 
     # A study day widened by its setting still quizzes its own topics first: in a context
@@ -111,12 +135,12 @@ module Exams
       rows.partition { |row| own.include?(row.first) }.flatten(1)
     end
 
-    def exact_quotas(available)
+    def exact_quotas(available, wanted)
       bank = available.sum { |size, count| size * count }
-      return available.dup if bank <= target
+      return available.dup if bank <= wanted
 
-      combinations(available.to_a, target).min_by do |quotas|
-        quotas.sum { |size, count| ((size * count) - (target * size * available[size] / bank.to_f))**2 }
+      combinations(available.to_a, wanted).min_by do |quotas|
+        quotas.sum { |size, count| ((size * count) - (wanted * size * available[size] / bank.to_f))**2 }
       end
     end
 
@@ -130,9 +154,9 @@ module Exams
       end
     end
 
-    def overshoot(rows)
+    def overshoot(rows, wanted)
       total = 0
-      rows.take_while { |row| (total < target).tap { total += row.last } }
+      rows.take_while { |row| (total < wanted).tap { total += row.last } }
     end
 
     # A specialty picked is an area: the cases about it and the cases set in it, each
@@ -145,8 +169,8 @@ module Exams
       cases = cases.where.not(id: seen_cases) if filters["unseen_only"]
       cases = cases.where(id: missed_cases) if filters["previously_wrong_only"]
 
-      cases.joins(:questions).group(:id, :specialty_id)
-           .order(:id).pluck(:id, :specialty_id, Arel.sql("COUNT(questions.id)"))
+      cases.joins(:questions).group(:id, :specialty_id, :difficulty)
+           .order(:id).pluck(:id, :specialty_id, :difficulty, Arel.sql("COUNT(questions.id)"))
     end
 
     # `also_setting_ids` widens the topics rather than narrowing them: a study day in one
@@ -172,7 +196,7 @@ module Exams
     # Shuffled, then dealt one specialty at a time, so the draw is interleaved and a
     # short quiz still touches several specialties.
     def ordered(rows)
-      queues = rows.shuffle(random: random).group_by { |_id, specialty_id, _count| specialty_id }.values
+      queues = rows.shuffle(random: random).group_by { |_id, specialty_id, _difficulty, _count| specialty_id }.values
       dealt = []
       dealt.concat(queues.filter_map(&:shift)) until queues.all?(&:empty?)
       dealt
@@ -180,7 +204,7 @@ module Exams
 
     def blocked(rows)
       positions = Specialty.pluck(:id, :position).to_h
-      rows.each_with_index.sort_by { |(_id, specialty_id, _count), index| [positions.fetch(specialty_id, Float::INFINITY), index] }
+      rows.each_with_index.sort_by { |(_id, specialty_id, _difficulty, _count), index| [positions.fetch(specialty_id, Float::INFINITY), index] }
           .map(&:first)
     end
 

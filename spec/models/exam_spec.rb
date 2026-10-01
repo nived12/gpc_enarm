@@ -46,6 +46,12 @@ RSpec.describe Exam do
       expect([timed.remaining_seconds, timed.time_up?]).to eq([0, true])
       expect([untimed.remaining_seconds, untimed.time_up?]).to eq([nil, false])
     end
+
+    it "gives only a timed rehearsal of the real exam its twenty-minute warning" do
+      expect(build_exam(mode: "full_exam", time_limit_seconds: 60).final_warning_seconds).to eq(1200)
+      expect(build_exam(mode: "full_exam").final_warning_seconds).to be_nil
+      expect(build_exam(mode: "quick_quiz", time_limit_seconds: 60).final_warning_seconds).to be_nil
+    end
   end
 
   describe "#discard!" do

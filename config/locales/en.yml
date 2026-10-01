@@ -80,6 +80,7 @@ en:
       pause: "Pause"
       finish: "Finish"
       back_to_results: "Results"
+      final_warning: "20 minutes left to finish the exam."
     question:
       case_label: "Clinical case · question %{number} of %{total}"
       choose: "Choose an answer"
@@ -138,6 +139,8 @@ en:
       mock:
         length: "Length"
         submit: "Start mock exam"
+        real_conditions: "Like ENARM day: the real exam's difficulty mix (a quarter low, half medium, a quarter high) and a single time warning, 20 minutes before the end."
+        imperfect_options: "On the real exam the ideal answer is sometimes not among the options. Then there is no point looking for it: choose the best of those offered."
       custom:
         question_count: "Number of questions"
         specialties: "Specialties"
@@ -177,8 +180,7 @@ en:
           at_end: "A single page, like the real exam. You can change answers until you finish."
     sheet:
       answered: "%{answered} of %{total} answered"
-      case_label: "Clinical case · questions %{first} to %{last}"
-      case_label_one: "Clinical case · question %{number}"
+      question_heading: "Question %{number}"
       save: "Save answer"
       saved: "Answer saved"
       finish: "Finish exam"
@@ -215,6 +217,7 @@ en:
       title: "Results"
       tally: "%{correct} correct out of %{total} questions"
       time: "time %{time}"
+      pace: "Pace: %{seconds} s per question answered · the real exam allows %{real} s"
       by_specialty: "By specialty"
       by_specialty_overlap: "Each question counts under its case's specialty and also under the setting it happens in (Emergency, Family Medicine or Public Health), so the rows add up to more than the total."
       specialty_tally: "%{correct} of %{total}"

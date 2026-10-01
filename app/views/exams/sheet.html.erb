@@ -11,34 +11,33 @@
 
 <%= render "exams/confidence_legend" %>
 
+<%# Laid out as the real booklet is: every question under its own "Pregunta N" heading,
+    with a rule between questions even inside one case; the case is printed once, under
+    the heading of its first question. %>
 <% exam_questions.chunk_while { |a, b| a.clinical_case_id == b.clinical_case_id }.each do |group| %>
   <% clinical_case = group.first.clinical_case %>
   <section class="mt-12 border-t border-line pt-10 first-of-type:border-0 first-of-type:pt-0" lang="<%= clinical_case.locale %>">
-    <p class="eyebrow" lang="<%= I18n.locale %>">
-      <%= group.one? ? t("exams.sheet.case_label_one", number: group.first.position) : t("exams.sheet.case_label", first: group.first.position, last: group.last.position) %>
-    </p>
-    <p class="vignette mt-3 text-ink"><%= clinical_case.stem %></p>
-    <% if clinical_case.clinical_image&.file&.attached? %>
-      <%= render "shared/figure", image: clinical_case.clinical_image, spacing: "mt-6" %>
-    <% end %>
-
-    <% group.each do |exam_question| %>
-      <article id="<%= dom_id(exam_question) %>" class="mt-10 scroll-mt-44">
-        <h2 class="flex gap-3 text-base font-medium leading-relaxed text-ink">
-          <span class="numeric shrink-0 text-ink-faint"><%= exam_question.position %>.</span>
-          <span><%= exam_question.question.text %></span>
-        </h2>
+    <% group.each_with_index do |exam_question, index| %>
+      <article id="<%= dom_id(exam_question) %>" class="scroll-mt-44 <%= "mt-10 border-t border-line pt-8" unless index.zero? %>">
+        <h2 class="numeric text-xl font-semibold text-accent" lang="<%= I18n.locale %>"><%= t("exams.sheet.question_heading", number: exam_question.position) %></h2>
+        <% if index.zero? %>
+          <p class="vignette mt-4 text-ink"><%= clinical_case.stem %></p>
+          <% if clinical_case.clinical_image&.file&.attached? %>
+            <%= render "shared/figure", image: clinical_case.clinical_image, spacing: "mt-6" %>
+          <% end %>
+        <% end %>
+        <p class="mt-6 text-base font-medium leading-relaxed text-ink"><%= exam_question.question.text %></p>
 
         <%= form_with url: exam_question_answer_path(@exam, exam_question.position), method: :post, class: "mt-4",
               data: { controller: "autosave", action: "change->autosave#save" } do %>
           <fieldset>
             <legend class="sr-only"><%= t("exams.question.choose") %></legend>
             <div class="space-y-2">
-              <% exam_question.answer_options.each_with_index do |option, index| %>
+              <% exam_question.answer_options.each_with_index do |option, option_index| %>
                 <label class="flex min-h-11 cursor-pointer items-start gap-4 rounded-card border border-line bg-surface px-5 py-3 text-sm leading-relaxed transition-colors hover:border-accent has-checked:border-accent has-checked:bg-accent-soft">
                   <%= radio_button_tag :answer_option_id, option.id, exam_question.answer&.answer_option_id == option.id,
                         id: dom_id(option, exam_question.id), class: "mt-1 size-4 shrink-0 accent-accent" %>
-                  <span class="numeric mt-px w-4 shrink-0 font-medium text-ink-faint"><%= option_letter(index) %></span>
+                  <span class="numeric mt-px w-4 shrink-0 font-medium text-ink-faint"><%= option_letter(option_index) %></span>
                   <span class="text-ink"><%= option.text %></span>
                 </label>
               <% end %>

@@ -17,5 +17,10 @@
 
   <%= render "settings", mode: "full_exam", prefix: "mock" %>
 
+  <div class="space-y-2 text-sm leading-relaxed text-ink-muted">
+    <p><%= t("exams.new.mock.real_conditions") %></p>
+    <p><%= t("exams.new.mock.imperfect_options") %></p>
+  </div>
+
   <%= button_tag t("exams.new.mock.submit"), class: "btn btn--primary w-full sm:w-auto" %>
 <% end %>

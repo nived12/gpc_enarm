@@ -82,6 +82,7 @@ es:
       pause: "Pausar"
       finish: "Terminar"
       back_to_results: "Resultados"
+      final_warning: "Quedan 20 minutos para terminar el examen."
     question:
       case_label: "Caso clínico · pregunta %{number} de %{total}"
       choose: "Elige una respuesta"
@@ -140,6 +141,8 @@ es:
       mock:
         length: "Extensión"
         submit: "Empezar simulacro"
+        real_conditions: "Como el día del ENARM: la mezcla de dificultad del examen real (una cuarta parte baja, la mitad media y una cuarta parte alta) y un solo aviso de tiempo, a 20 minutos del final."
+        imperfect_options: "En el examen real, a veces la respuesta ideal no aparece entre las opciones. Ahí no hay que buscarla: se elige la mejor de las que hay."
       custom:
         question_count: "Número de preguntas"
         specialties: "Especialidades"
@@ -179,8 +182,7 @@ es:
           at_end: "Una sola página, como el examen real. Puedes cambiar respuestas hasta terminar."
     sheet:
       answered: "%{answered} de %{total} respondidas"
-      case_label: "Caso clínico · preguntas %{first} a %{last}"
-      case_label_one: "Caso clínico · pregunta %{number}"
+      question_heading: "Pregunta %{number}"
       save: "Guardar respuesta"
       saved: "Respuesta guardada"
       finish: "Terminar examen"
@@ -217,6 +219,7 @@ es:
       title: "Resultados"
       tally: "%{correct} aciertos de %{total} preguntas"
       time: "tiempo %{time}"
+      pace: "Ritmo: %{seconds} s por pregunta respondida · el examen real da %{real} s"
       by_specialty: "Por especialidad"
       by_specialty_overlap: "Cada pregunta cuenta en la especialidad de su caso y también en el contexto donde ocurre (Urgencias, Medicina Familiar o Salud Pública), así que las filas suman más que el total."
       specialty_tally: "%{correct} de %{total}"
