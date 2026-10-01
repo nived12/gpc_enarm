@@ -82,7 +82,7 @@ es:
       pause: "Pausar"
       finish: "Terminar"
       back_to_results: "Resultados"
-      final_warning: "Quedan 20 minutos para terminar el examen."
+      final_warning: "Quedan menos de %{minutes} minutos para terminar el examen."
     question:
       case_label: "Caso clínico · pregunta %{number} de %{total}"
       choose: "Elige una respuesta"
@@ -141,7 +141,7 @@ es:
       mock:
         length: "Extensión"
         submit: "Empezar simulacro"
-        real_conditions: "Como el día del ENARM: la mezcla de dificultad del examen real (una cuarta parte baja, la mitad media y una cuarta parte alta) y un solo aviso de tiempo, a 20 minutos del final."
+        real_conditions: "Como el día del ENARM: la mezcla de dificultad del examen real (una cuarta parte baja, la mitad media y una cuarta parte alta) cuando el banco la permite, y con reloj, un solo aviso de tiempo a 20 minutos del final."
         imperfect_options: "En el examen real, a veces la respuesta ideal no aparece entre las opciones. Ahí no hay que buscarla: se elige la mejor de las que hay."
       custom:
         question_count: "Número de preguntas"
@@ -219,7 +219,7 @@ es:
       title: "Resultados"
       tally: "%{correct} aciertos de %{total} preguntas"
       time: "tiempo %{time}"
-      pace: "Ritmo: %{seconds} s por pregunta respondida · el examen real da %{real} s"
+      pace: "Ritmo: %{seconds} s por pregunta respondida · el examen real da unos %{real} s"
       by_specialty: "Por especialidad"
       by_specialty_overlap: "Cada pregunta cuenta en la especialidad de su caso y también en el contexto donde ocurre (Urgencias, Medicina Familiar o Salud Pública), así que las filas suman más que el total."
       specialty_tally: "%{correct} de %{total}"
@@ -350,6 +350,7 @@ es:
       another_option_valid: "otra opción también es correcta"
       beyond_general_practice: "detalle de subespecialidad, fuera de lo que se espera de un médico general"
       administrative_trivia: "dato administrativo, no una decisión clínica"
+      dose_question: "pregunta una dosis; el examen real pregunta qué fármaco o qué conducta"
     question_count:
       one: "1 pregunta"
       other: "%{count} preguntas"

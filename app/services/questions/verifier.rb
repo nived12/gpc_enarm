@@ -25,9 +25,10 @@ module Questions
     # the first 500-call chunk, and are the only judgements the verifier may make from its
     # own medical knowledge: whether the recommendation fits this patient at all cannot be
     # read from the recommendation. A code the model invents is ignored: only these
-    # hold a case back, and each has a label a reviewer reads (review.flaws).
+    # hold a case back, and each has a label a reviewer reads (review.flaws). dose_question
+    # came from candidates of the 2026 exam: it asks which drug, never how much.
     FLAWS = %w[
-      answer_in_stem other_patient repeats_question implausible_distractor giveaway_wording
+      answer_in_stem other_patient repeats_question implausible_distractor giveaway_wording dose_question
       wrong_for_this_patient another_option_valid beyond_general_practice administrative_trivia
     ].freeze
 
@@ -96,6 +97,8 @@ module Questions
           elegiría.
         - giveaway_wording: la viñeta o el enunciado de la pregunta contienen palabras que
           delatan la respuesta, o una opción destaca claramente de las demás por su forma.
+        - dose_question: pregunta una dosis, una cifra de dosificación o un esquema de
+          administración, en vez de qué fármaco o qué conducta.
         Para los cuatro siguientes usa tu conocimiento médico:
         - wrong_for_this_patient: la opción que la recomendación respalda no es la mejor
           conducta para el paciente tal como se describe (la recomendación aplica a otra

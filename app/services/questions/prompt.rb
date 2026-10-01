@@ -70,11 +70,11 @@ module Questions
     # must never hand over the diagnosis the question asks for.
     LEXICON_INSTRUCTIONS = <<~TEXT.strip
       Escribes con el léxico médico técnico y formal del examen real, denso como un
-      expediente clínico: describe síntomas y hallazgos con su término semiológico
-      (disnea de medianos esfuerzos, ortopnea, ictericia conjuntival, hepatomegalia de
-      3 cm bajo el reborde costal) y no con palabras coloquiales, y no simplifiques el
-      vocabulario para el alumno. El término describe el hallazgo, nunca nombra el
-      diagnóstico ni el signo epónimo que la pregunta pide identificar.
+      expediente clínico: describe los síntomas y hallazgos que ESTE paciente tiene con su
+      término semiológico y no con palabras coloquiales (por ejemplo, "disnea de medianos
+      esfuerzos" y no "se cansa al caminar"), y no simplifiques el vocabulario para el
+      alumno. El término describe el hallazgo, nunca nombra el diagnóstico ni el signo
+      epónimo que la pregunta pide identificar.
     TEXT
 
     # Five of the pilot's 197 vignettes, case 250 among them, ended with a question of

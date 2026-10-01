@@ -95,19 +95,48 @@ RSpec.describe Exams::Builder do
   describe "the real exam's difficulty mix" do
     before { stub_const("Exam::QUESTION_COUNTS", Exam::QUESTION_COUNTS.merge("full_exam" => 8)) }
 
-    it "draws a quarter low, half medium and a quarter high on an exam-length mode" do
-      %w[low medium high].each { |level| 6.times { create(:published_case, difficulty: level, questions_count: 1) } }
+    def questions_by_level(exam)
+      exam.exam_questions.includes(:clinical_case).map { |row| row.clinical_case.difficulty }.tally
+    end
+
+    it "draws a quarter low, half medium and a quarter high on an exam-length mode, exactly" do
+      %w[low medium high].each do |level|
+        2.times { create(:published_case, difficulty: level, questions_count: 3) }
+        2.times { create(:published_case, difficulty: level, questions_count: 2) }
+      end
 
       exam = build(mode: "full_exam").payload[:exam]
 
-      expect(cases_in(exam).map(&:difficulty).tally).to eq("low" => 2, "medium" => 4, "high" => 2)
+      expect(questions_by_level(exam)).to eq("low" => 2, "medium" => 4, "high" => 2)
     end
 
     it "falls back to the plain draw when the bank is short of a level" do
       8.times { create(:published_case, difficulty: "low", questions_count: 1) }
       create(:published_case, difficulty: "high", questions_count: 1)
 
-      expect(build(mode: "full_exam").payload[:exam].question_count).to eq(8)
+      exam = build(mode: "full_exam").payload[:exam]
+
+      expect([exam.question_count, questions_by_level(exam)["high"]]).to eq([8, nil]).or eq([8, 1])
+    end
+
+    # Three-question cases cannot make a level of two; taking that level alone would run
+    # the exam over, so the plain draw, which mixes sizes across levels, decides.
+    it "falls back to the plain draw when a level's case sizes cannot add up to its count" do
+      %w[low high].each { |level| 2.times { create(:published_case, difficulty: level, questions_count: 3) } }
+      4.times { create(:published_case, difficulty: "medium", questions_count: 1) }
+
+      exam = build(mode: "full_exam").payload[:exam]
+
+      expect(exam.question_count).to eq(8)
+    end
+
+    it "splits a longer exam with the remainder in the middle" do
+      stub_const("Exam::QUESTION_COUNTS", Exam::QUESTION_COUNTS.merge("extended_exam" => 10))
+      %w[low medium high].each { |level| 6.times { create(:published_case, difficulty: level, questions_count: 1) } }
+
+      exam = build(mode: "extended_exam").payload[:exam]
+
+      expect(questions_by_level(exam)).to eq("low" => 3, "medium" => 4, "high" => 3)
     end
   end
 

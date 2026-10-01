@@ -108,16 +108,18 @@ module Exams
 
     # A rehearsal of the real exam takes its difficulty mix too — the 2026 answer sheet
     # was 70 low, 140 medium and 70 high of 280 — drawn level by level from the already
-    # interleaved order, so the levels stay mixed through the exam. A bank short of any
-    # level falls back to the plain draw rather than handing over a short exam.
+    # interleaved order, so the levels stay mixed through the exam. Exactly 280 matters
+    # more than the mix, so a level the bank cannot fill to its count exactly — too few
+    # questions, or case sizes that cannot add up to it — sends the whole exam back to
+    # the plain draw, which can mix sizes across levels.
     def by_difficulty(rows)
       return unless Exam::EXAM_LENGTH_MODES.include?(mode)
 
-      wanted = difficulty_targets
       levels = rows.group_by { |row| row[2] }
-      return if wanted.any? { |level, count| levels.fetch(level, []).sum(&:last) < count }
+      drawn = difficulty_targets.map { |level, count| [take(levels.fetch(level, []), count), count] }
+      return unless drawn.all? { |taken, count| taken.sum(&:last) == count }
 
-      kept = wanted.flat_map { |level, count| take(levels[level], count) }.to_set
+      kept = drawn.flat_map(&:first).to_set
       rows.select { |row| kept.include?(row) }
     end
 

@@ -306,13 +306,23 @@ RSpec.describe "Exams", type: :request do
       expect(response.body).to include(I18n.t("exams.new.mock.imperfect_options"))
     end
 
-    it "warns once, twenty minutes before the end, and not before" do
-      get exam_path(exam)
-      expect(response.body).to match(/role="status" id="final_warning_exam_#{exam.id}"\s*>/)
+    # The exam's clock is 225 s, so a warning at 200 s left is due after 25 s.
+    it "warns once, near the end, and keeps the live region empty before then" do
+      stub_const("Exam::FINAL_WARNING_SECONDS", 200)
+      message = I18n.t("exams.bar.final_warning", minutes: 3)
 
-      stub_const("Exam::FINAL_WARNING_SECONDS", 60)
       get exam_path(exam)
-      expect(response.body).to match(/id="final_warning_exam_#{exam.id}"\s*hidden>/)
+      expect(response.body).to include(%(data-message="#{message}"></p>))
+
+      exam.update!(running_since: 30.seconds.ago)
+      get exam_path(exam)
+      expect(response.body).to include(%(data-message="#{message}">#{message}</p>))
+    end
+
+    it "has no warning on an exam too short to need one" do
+      get exam_path(exam)
+
+      expect(response.body).not_to include(%(id="final_warning_exam_))
     end
 
     it "saves each choice in place, in any order, and a change of mind replaces it" do
@@ -358,11 +368,22 @@ RSpec.describe "Exams", type: :request do
       patch complete_exam_path(exam)
       follow_redirect!
       expect(response.body).to include("33.3%", I18n.t("exams.results.tally", correct: 1, total: 3))
-      expect(response.body).to include(I18n.t("exams.results.pace", seconds: 0, real: 77))
+      expect(response.body).to include(I18n.t("exams.results.pace", seconds: 0, real: 75))
 
       get exam_question_path(exam, 3)
       expect(response.body).to include(I18n.t("exams.question.unanswered"), I18n.t("exams.feedback.source"))
       expect(response.body).to include(I18n.t("exams.question.back_to_results"))
+    end
+
+    it "reports the pace per question answered" do
+      choose(1, "Troponina I")
+      choose(2, "Troponina I")
+      exam.update!(elapsed_seconds: 150, running_since: nil)
+
+      patch complete_exam_path(exam)
+      follow_redirect!
+
+      expect(response.body).to include(I18n.t("exams.results.pace", seconds: 75, real: 75))
     end
 
     it "ends the exam when the clock runs out" do

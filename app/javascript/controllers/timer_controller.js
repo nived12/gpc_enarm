@@ -25,7 +25,9 @@ export default class extends Controller {
     this.displayTarget.textContent = this.format(shown)
 
     const warning = this.warningIdValue && document.getElementById(this.warningIdValue)
-    if (timed && warning && shown <= this.warnAtValue) warning.hidden = false
+    if (timed && warning && !warning.textContent && shown <= this.warnAtValue) {
+      warning.textContent = warning.dataset.message
+    }
 
     if (timed && shown === 0) {
       clearInterval(this.interval)

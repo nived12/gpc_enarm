@@ -49,8 +49,6 @@ class Exam < ApplicationRecord
   # exam-length modes warn at the same moment.
   FINAL_WARNING_SECONDS = 20 * 60
 
-  # Six hours for 280 questions, rounded down.
-  REAL_SECONDS_PER_QUESTION = 77
 
   validates :question_count, numericality: { greater_than: 0 }
   validates :seconds_per_question, inclusion: { in: PACES }, allow_nil: true
@@ -90,9 +88,16 @@ class Exam < ApplicationRecord
     [time_limit_seconds - current_elapsed, 0].max if time_limit_seconds
   end
 
-  # Only a timed rehearsal of the real exam gets the real sitting's one warning.
+  # Only a timed rehearsal of the real exam gets the real sitting's one warning, and only
+  # one long enough to have a moment worth warning about.
   def final_warning_seconds
-    FINAL_WARNING_SECONDS if time_limit_seconds && EXAM_LENGTH_MODES.include?(mode)
+    return unless EXAM_LENGTH_MODES.include?(mode) && time_limit_seconds.to_i > FINAL_WARNING_SECONDS
+
+    FINAL_WARNING_SECONDS
+  end
+
+  def final_warning_due?
+    !final_warning_seconds.nil? && remaining_seconds <= final_warning_seconds
   end
 
   def time_up?
