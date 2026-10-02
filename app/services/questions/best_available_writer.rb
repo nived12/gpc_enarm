@@ -38,7 +38,7 @@ module Questions
       record(completion.payload)
       @written = Llm::Completion.json_in(completion.payload[:content])
       return failure("El modelo no devolvió JSON legible") unless written.is_a?(Hash)
-      return success(variant: nil) if written["suitable"] == false
+      return decline if written["suitable"] == false
 
       reason = refusal
       return failure(reason) if reason
@@ -53,6 +53,12 @@ module Questions
     private
 
     attr_reader :question, :run, :written
+
+    # Recorded on the original, so no later run pays to ask about this question again.
+    def decline
+      question.update!(best_available_declined_at: Time.current)
+      success(variant: nil)
+    end
 
     def options
       @options ||= question.answer_options.to_a
@@ -113,8 +119,22 @@ module Questions
       return "El modelo eligió una opción que no es un distractor" if best.nil? || best.correct?
       return "Falta la opción nueva o la explicación" if new_option.blank? || written["explanation"].to_s.squish.blank?
       return "La opción nueva repite una de las que ya había" if repeats_an_option?
+      return "Faltan razones para los distractores" if rationales.values_at(*wrong_keys).any?(&:blank?)
 
       nil
+    end
+
+    # Every option left wrong needs its own reason. The original's would explain why the
+    # option loses to the ideal answer, which this version no longer offers.
+    def rationales
+      @rationales ||= (written["rationales"].is_a?(Hash) ? written["rationales"] : {})
+                      .transform_values { |text| text.to_s.squish }
+    end
+
+    def wrong_keys
+      options.reject do |option|
+        option.correct? || option == best
+      end.map { |option| LETTERS[options.index(option)] } + ["new"]
     end
 
     def new_option
@@ -128,8 +148,6 @@ module Questions
     end
 
     def create_variant
-      rationales = written["rationales"].is_a?(Hash) ? written["rationales"] : {}
-
       Question.transaction do
         variant = question.create_best_available_variant!(
           clinical_case: question.clinical_case, position: question.position, text: question.text,
@@ -139,14 +157,14 @@ module Questions
         kept = options.reject(&:correct?)
         kept.each.with_index(1) do |option, order|
           chosen = option == best
-          rationale = rationales[LETTERS[options.index(option)]].to_s.squish.presence || option.rationale
           variant.answer_options.create!(
-            position: order, text: option.text, correct: chosen, rationale: (rationale unless chosen)
+            position: order, text: option.text, correct: chosen,
+            rationale: (rationales[LETTERS[options.index(option)]] unless chosen)
           )
         end
         variant.answer_options.create!(
           position: Question::OPTION_COUNT, text: new_option, correct: false,
-          rationale: rationales["new"].to_s.squish.presence
+          rationale: rationales["new"]
         )
         variant
       end

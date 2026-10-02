@@ -81,11 +81,16 @@ RSpec.describe "Simulacro ENARM", type: :system do
     expect_no_sideways_scroll
 
     click_button I18n.t("exams.booklet.open_sheet")
+    expect(page).to have_css("[role=dialog][aria-modal=true]")
     bubble(3, "A").click
     expect(page).to have_text(I18n.t("exams.sheet.answered", answered: 1, total: 3))
+    answer = Exam.last.exam_questions.find_by!(position: 3).answer
+    first_choice = answer.answer_option_id
     bubble(3, "B").click
-    click_button I18n.t("exams.booklet.close_sheet")
-    expect(page).to have_no_button(I18n.t("exams.booklet.close_sheet"))
+    Timeout.timeout(Capybara.default_max_wait_time) { sleep 0.05 until answer.reload.answer_option_id != first_choice }
+    page.send_keys(:escape)
+    expect(page).to have_no_css("[role=dialog]")
+    expect(page).to have_button(I18n.t("exams.booklet.open_sheet"), focused: true)
 
     visit current_path
     click_button I18n.t("exams.booklet.open_sheet")

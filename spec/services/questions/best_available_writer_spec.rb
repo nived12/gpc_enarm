@@ -28,7 +28,7 @@ RSpec.describe Questions::BestAvailableWriter do
     {
       "suitable" => true, "best" => "B", "new_option" => " Haloperidol  intramuscular ",
       "explanation" => "La ideal sería sulfato de magnesio; de las ofrecidas, el diazepam detiene la crisis.",
-      "rationales" => { "C" => "Inicio más lento.", "new" => "No trata la crisis." }
+      "rationales" => { "C" => "Inicio más lento.", "D" => "No trata la crisis.", "new" => "Tampoco la trata." }
     }
   end
 
@@ -56,8 +56,8 @@ RSpec.describe Questions::BestAvailableWriter do
     expect(variant.answer_options.map { |option| [option.text, option.correct, option.rationale] }).to eq(
       [
         ["Diazepam intravenoso", true, nil], ["Fenitoína", false, "Inicio más lento."],
-        ["Tomografía de cráneo", false, "Razón original 4."],
-        ["Haloperidol intramuscular", false, "No trata la crisis."]
+        ["Tomografía de cráneo", false, "No trata la crisis."],
+        ["Haloperidol intramuscular", false, "Tampoco la trata."]
       ]
     )
     expect(clinical_case.questions.reload).to eq([question])
@@ -67,11 +67,12 @@ RSpec.describe Questions::BestAvailableWriter do
     )
   end
 
-  it "writes nothing when no remaining option is clearly the best" do
+  it "writes nothing when no remaining option is clearly the best, and remembers not to ask again" do
     stub_model({ "suitable" => false })
 
     expect(described_class.call(question).payload).to eq(variant: nil)
     expect(question.reload.best_available_variant).to be_nil
+    expect(question.best_available_declined_at).to be_present
   end
 
   it "refuses a choice that is not a distractor, a missing piece, or an option already there" do
@@ -89,12 +90,14 @@ RSpec.describe Questions::BestAvailableWriter do
     expect(question.reload.best_available_variant).to be_nil
   end
 
-  it "keeps the original rationale when the model writes none" do
-    stub_model(reply.merge("rationales" => "ninguna"))
+  # The original's rationale explains why an option loses to the ideal answer, which the
+  # version no longer offers, so it is never carried over.
+  it "refuses a version without its own reason for every option left wrong" do
+    [reply["rationales"].merge("D" => " "), "ninguna"].each do |rationales|
+      stub_model(reply.merge("rationales" => rationales))
 
-    variant = described_class.call(question).payload[:variant]
-
-    expect(variant.answer_options.map(&:rationale)).to eq([nil, "Razón original 3.", "Razón original 4.", nil])
+      expect(described_class.call(question).errors.full_messages.first).to include("Faltan razones")
+    end
   end
 
   it "fails on an unreadable reply or a failed call, and never writes a second version" do

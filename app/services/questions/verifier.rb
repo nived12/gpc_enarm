@@ -183,7 +183,7 @@ module Questions
     def rationales_for(verdict)
       return unless verdict == "supported"
 
-      unjudged = AnswerOption.rationale_unjudged.joins(:question)
+      unjudged = AnswerOption.rationale_unjudged.of_originals
                              .where(questions: { clinical_case_id: clinical_case.id })
       return unless unjudged.exists?
 

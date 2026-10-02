@@ -127,7 +127,7 @@ module Questions
     # Supported cases whose rationales were never judged: the pilot bank, and any case
     # whose rationale call failed after its verdict was recorded.
     def rationales_pending
-      unjudged = AnswerOption.rationale_unjudged.joins(:question).select("questions.clinical_case_id")
+      unjudged = AnswerOption.rationale_unjudged.of_originals.select("questions.clinical_case_id")
       ClinicalCase.verdict_supported.where(id: unjudged).where.not(status: "retired")
     end
 

@@ -75,7 +75,7 @@ FactoryBot.define do
 
         variant = create(
           :question, clinical_case: kase, position: index + 1, recommendation: recommendation, variant_of: question,
-          text: question.text, source_quote: question.source_quote,
+          text: question.text, source_quote: question.source_quote, best_available_verdict: "supported",
           explanation: "La ideal sería el electrocardiograma; de las ofrecidas, la troponina."
         )
         ["Troponina I", "Radiografía de tórax", "Ecocardiograma",

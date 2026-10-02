@@ -26,6 +26,12 @@ class Question < ApplicationRecord
   validates :position, presence: true
   validates :position, uniqueness: { scope: :clinical_case_id, conditions: -> { originals } }, unless: :variant_of_id?
 
+  # A version reaches a student only once a model of another family, answering blind, lands
+  # on the option it marks correct (Questions::BestAvailableVerifier).
+  enum :best_available_verdict,
+    { supported: "supported", disputed: "disputed", ambiguous: "ambiguous" },
+    prefix: :best_available
+
   # Everything a case asks outside Modo ENARM. Every query that counts or draws a case's
   # questions reads these, never Question alone.
   scope :originals, -> { where(variant_of_id: nil) }

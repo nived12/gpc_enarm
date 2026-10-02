@@ -189,8 +189,8 @@ module Questions
       variant = question.best_available_variant || question.build_best_available_variant
       variant.update!(
         clinical_case: question.clinical_case, position: question.position, text: question.text,
-        explanation: attributes["explanation"], recommendation: question.recommendation,
-        source_quote: question.source_quote
+        recommendation: question.recommendation, source_quote: question.source_quote,
+        **attributes.slice(*BestAvailableExporter::ATTRIBUTES).symbolize_keys
       )
       write_options(variant, attributes["options"])
     end

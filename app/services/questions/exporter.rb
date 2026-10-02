@@ -121,7 +121,7 @@ module Questions
     # Modo ENARM's version travels inside its original, which it shares a case, a
     # citation and a position with; only what differs is written.
     def best_available_payload(variant)
-      { "explanation" => variant.explanation, "options" => options_payload(variant) }
+      variant.slice(*BestAvailableExporter::ATTRIBUTES).merge("options" => options_payload(variant))
     end
 
     def recommendation_payload(recommendation)

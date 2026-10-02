@@ -220,11 +220,12 @@ module Exams
 
     # Modo ENARM deals in some questions whose ideal answer is not offered, as the real
     # sitting did — some, never all: the rest keep the real answer among the options.
-    # Which ones is drawn afresh for every exam, from the questions that have a version.
+    # Which ones is drawn afresh for every exam, from the questions whose version the
+    # second opinion supported.
     def with_best_available(sequence)
       return sequence unless enarm_mode?
 
-      variants = Question.where(variant_of_id: sequence.map(&:id)).index_by(&:variant_of_id)
+      variants = Question.best_available_supported.where(variant_of_id: sequence.map(&:id)).index_by(&:variant_of_id)
       swapped = variants.keys.sample((sequence.size * Exam::BEST_AVAILABLE_SHARE).round, random: random).to_set
       sequence.map { |question| swapped.include?(question.id) ? variants.fetch(question.id) : question }
     end

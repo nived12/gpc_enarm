@@ -179,6 +179,13 @@ RSpec.describe Exams::Builder do
       expect(sit(enarm_mode: "0").none?(&:variant_of_id?)).to be(true)
       expect(sit(mode: "custom").none?(&:variant_of_id?)).to be(true)
     end
+
+    it "never deals a version the second opinion did not support" do
+      2.times { create(:published_case, questions_count: 2, best_available: true) }
+      Question.where.not(variant_of_id: nil).update_all(best_available_verdict: "disputed")
+
+      expect(sit.none?(&:variant_of_id?)).to be(true)
+    end
   end
 
   it "falls back to the mode's timing for a value the form never offers" do

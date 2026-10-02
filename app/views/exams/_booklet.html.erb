@@ -2,9 +2,10 @@
     question with its options as text, under its own "Pregunta N" heading; the answer
     sheet is a column of numbered rows of bubbles, one form per question, saved as each
     bubble is filled. Beside the booklet on a wide screen; on a phone it opens over the
-    booklet and closes back to where the student was reading. %>
+    booklet, under the exam bar so the clock stays in sight, and closes back to where the
+    student was reading. Without JavaScript it simply follows the booklet. %>
 <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-10" data-controller="answer-sheet">
-  <div>
+  <div data-answer-sheet-target="booklet">
     <% exam_questions.chunk_while { |a, b| a.clinical_case_id == b.clinical_case_id }.each do |group| %>
       <% clinical_case = group.first.clinical_case %>
       <section class="mt-12 border-t border-line pt-10 first-of-type:border-0 first-of-type:pt-0" lang="<%= clinical_case.locale %>">
@@ -32,12 +33,12 @@
     <% end %>
   </div>
 
-  <aside class="fixed inset-0 z-40 hidden overflow-y-auto bg-ground px-4 pb-8 pt-4 lg:sticky lg:top-44 lg:z-auto lg:self-start lg:block lg:max-h-[calc(100vh-12rem)] lg:rounded-card lg:border lg:border-line lg:bg-surface lg:p-4"
+  <aside class="mt-12 lg:sticky lg:top-44 lg:mt-0 lg:max-h-[calc(100vh-12rem)] lg:self-start lg:overflow-y-auto lg:rounded-card lg:border lg:border-line lg:bg-surface lg:p-4"
          data-answer-sheet-target="panel" aria-labelledby="<%= dom_id(exam, :answer_sheet) %>">
     <div class="flex items-center justify-between gap-3">
       <h2 id="<%= dom_id(exam, :answer_sheet) %>" class="text-sm font-medium text-ink"><%= t("exams.booklet.answer_sheet") %></h2>
-      <button type="button" class="min-h-11 rounded-full border border-line-strong px-4 text-sm font-medium text-ink lg:hidden"
-              data-action="answer-sheet#close"><%= t("exams.booklet.close_sheet") %></button>
+      <button type="button" class="hidden min-h-11 rounded-full border border-line-strong px-4 text-sm font-medium text-ink"
+              data-answer-sheet-target="closer" data-action="answer-sheet#close"><%= t("exams.booklet.close_sheet") %></button>
     </div>
     <ol class="mt-3 divide-y divide-line">
       <% exam_questions.each do |exam_question| %>
@@ -67,7 +68,8 @@
     </ol>
   </aside>
 
-  <button type="button" class="btn btn--primary sticky bottom-4 z-30 mt-8 w-full lg:hidden" data-action="answer-sheet#open">
+  <button type="button" class="btn btn--primary sticky bottom-4 z-30 mt-8 hidden w-full" data-answer-sheet-target="opener"
+          data-action="answer-sheet#open">
     <%= t("exams.booklet.open_sheet") %>
   </button>
 </div>
