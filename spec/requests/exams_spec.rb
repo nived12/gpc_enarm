@@ -341,6 +341,18 @@ RSpec.describe "Exams", type: :request do
       expect(response.body).to include(I18n.t("exams.sheet.answered", answered: 1, total: 3))
     end
 
+    it "says so in the explanation when the ideal answer was left out" do
+      variant = create(:published_case, questions_count: 1, best_available: true).questions.sole.best_available_variant
+      exam.exam_questions.find_by!(position: 3).update!(question: variant, clinical_case: variant.clinical_case)
+      patch complete_exam_path(exam)
+
+      get exam_question_path(exam, 3)
+      expect(response.body).to include(I18n.t("exams.feedback.best_available"))
+
+      get exam_question_path(exam, 1)
+      expect(response.body).not_to include(I18n.t("exams.feedback.best_available"))
+    end
+
     it "saves each choice in place, in any order, and a change of mind replaces it" do
       choose(3, "Troponina I")
       expect(response.media_type).to eq("text/vnd.turbo-stream.html")

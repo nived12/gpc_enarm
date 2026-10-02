@@ -107,6 +107,7 @@ en:
           other: "%{count} questions are unanswered and will count as wrong. Finish the exam?"
     feedback:
       explanation: "Explanation"
+      best_available: "In this question the ideal answer was not among the options, as happens on the real exam: the correct one is the best of those offered."
       source: "Cited recommendation"
       undated: "undated"
       expired: "Past its validity"
@@ -538,6 +539,7 @@ en:
         rationales: "Option rationales"
         screening: "Guideline screening for the ENARM"
         statement_repair: "Recommendation text clean-up"
+        best_available: "Best-available-answer versions (ENARM mode)"
       columns:
         purpose: "Purpose"
         model: "Provider · model"

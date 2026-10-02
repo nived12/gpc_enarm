@@ -161,6 +161,26 @@ RSpec.describe Exams::Builder do
     expect([quiz.enarm_mode, quiz.feedback_timing]).to eq([false, "after_each"])
   end
 
+  describe "Modo ENARM's best-available-answer questions" do
+    before { stub_const("Exam::BEST_AVAILABLE_SHARE", 0.5) }
+
+    def sit(mode: "full_exam", enarm_mode: "1")
+      described_class.call(user: user, mode: mode, settings: { enarm_mode: enarm_mode }, random: Random.new(3))
+                     .payload[:exam].exam_questions.map(&:question)
+    end
+
+    it "asks some questions, never all, with the ideal answer left out, only in Modo ENARM" do
+      2.times { create(:published_case, questions_count: 2, best_available: true) }
+
+      asked = sit
+
+      expect(asked.count(&:variant_of_id?)).to eq(2)
+      expect(asked.map { |question| question.variant_of_id || question.id }.uniq.size).to eq(4)
+      expect(sit(enarm_mode: "0").none?(&:variant_of_id?)).to be(true)
+      expect(sit(mode: "custom").none?(&:variant_of_id?)).to be(true)
+    end
+  end
+
   it "falls back to the mode's timing for a value the form never offers" do
     create(:published_case)
 

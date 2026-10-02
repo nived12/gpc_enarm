@@ -49,6 +49,10 @@ class Exam < ApplicationRecord
   # exam-length modes warn at the same moment.
   FINAL_WARNING_SECONDS = 20 * 60
 
+  # The share of a Modo ENARM sitting asked with the ideal answer left out. A first guess
+  # until a 2026 candidate estimates how many such items the real exam had.
+  BEST_AVAILABLE_SHARE = 0.1
+
 
   validates :question_count, numericality: { greater_than: 0 }
   validates :seconds_per_question, inclusion: { in: PACES }, allow_nil: true

@@ -264,6 +264,35 @@ namespace :questions do
     puts "Las razones reescritas quedan sin revisar: corre questions:verify_rationales."
   end
 
+  desc "Write Modo ENARM's best-available-answer version of published questions (paid) " \
+       "[count]"
+  task :best_available, [:count] => :environment do |_task, args|
+    count = (args[:count] || 10).to_i
+    provider = Llm::Provider.for(:generator)
+    abort("Falta la clave del generador. Revisa .env") unless provider.configured?
+
+    run = GenerationRun.create!(
+      purpose: "best_available", provider: provider.name, model: provider.model, started_at: Time.current
+    )
+    pending = Question.originals.joins(:clinical_case).merge(ClinicalCase.status_published)
+                      .where.not(recommendation_id: nil).where.missing(:best_available_variant)
+
+    tally = Hash.new(0)
+    pending.order("RANDOM()").limit(count).includes(:answer_options, :clinical_case, :recommendation).each do |question|
+      result = Questions::BestAvailableWriter.call(question, run: run)
+      outcome = if result.failure? then :failed
+      elsif result.payload[:variant] then :written
+      else :declined
+      end
+      tally[outcome] += 1
+      puts "pregunta #{question.id}: #{outcome == :failed ? result.errors.full_messages.first : outcome}"
+    end
+
+    run.update!(status: "completed", finished_at: Time.current)
+    puts "\nescritas=#{tally[:written]} sin_opcion_defendible=#{tally[:declined]} fallidas=#{tally[:failed]} " \
+         "tokens=#{run.total_tokens} costo=$#{run.cost_usd.to_f.round(4)}"
+  end
+
   desc "The whole bank, in chunks: generate, back up, verify, publish, to a dollar cap. Totals are per label, " \
        "so re-running the same command continues: rake questions:full_run[calls,budget_usd,label,chunk]"
   task :full_run, %i[calls budget label chunk] => :environment do |_task, args|

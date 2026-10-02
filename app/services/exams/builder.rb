@@ -218,10 +218,21 @@ module Exams
           .map(&:first)
     end
 
+    # Modo ENARM deals in some questions whose ideal answer is not offered, as the real
+    # sitting did — some, never all: the rest keep the real answer among the options.
+    # Which ones is drawn afresh for every exam, from the questions that have a version.
+    def with_best_available(sequence)
+      return sequence unless enarm_mode?
+
+      variants = Question.where(variant_of_id: sequence.map(&:id)).index_by(&:variant_of_id)
+      swapped = variants.keys.sample((sequence.size * Exam::BEST_AVAILABLE_SHARE).round, random: random).to_set
+      sequence.map { |question| swapped.include?(question.id) ? variants.fetch(question.id) : question }
+    end
+
     def create_exam(picked)
       case_ids = picked.map(&:first)
-      questions = Question.where(clinical_case_id: case_ids).order(:position).group_by(&:clinical_case_id)
-      sequence = case_ids.flat_map { |case_id| questions.fetch(case_id) }
+      questions = Question.originals.where(clinical_case_id: case_ids).order(:position).group_by(&:clinical_case_id)
+      sequence = with_best_available(case_ids.flat_map { |case_id| questions.fetch(case_id) })
 
       pace = seconds_per_question
       Exam.transaction do

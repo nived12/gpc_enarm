@@ -73,6 +73,26 @@ RSpec.describe "question bank export and import" do
     expect(question.clinical_case.guideline.catalog_key).to eq("IMSS-028-22")
   end
 
+  it "carries a question's Modo ENARM version inside it, and replays it without a second copy" do
+    question = build_bank.questions.sole
+    variant = create(
+      :question, clinical_case: question.clinical_case, position: 1, variant_of: question, text: question.text,
+      recommendation: question.recommendation, source_quote: question.source_quote, explanation: "La ideal no está."
+    )
+    create(:answer_option, question: variant, position: 1, text: "Radiografía de tórax", correct: true)
+    export
+    clear_generated
+    import
+    import
+
+    restored = ClinicalCase.sole.questions.sole.best_available_variant
+    expect(restored).to have_attributes(
+      position: 1, explanation: "La ideal no está.", source_quote: "electrocardiograma de 12 derivaciones"
+    )
+    expect(restored.correct_option.text).to eq("Radiografía de tórax")
+    expect(Question.count).to eq(2)
+  end
+
   it "resolves references by key, whatever the row ids are on the far side" do
     build_bank
     export

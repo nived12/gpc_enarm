@@ -41,6 +41,7 @@ FactoryBot.define do
     transient do
       questions_count { 2 }
       figure { false }
+      best_available { false }
     end
 
     after(:create) do |kase, context|
@@ -70,6 +71,17 @@ FactoryBot.define do
               rationale: ("#{text} no es el estudio inicial: tarda en dar un resultado útil." unless position == 2)
             )
           end
+        next unless context.best_available
+
+        variant = create(
+          :question, clinical_case: kase, position: index + 1, recommendation: recommendation, variant_of: question,
+          text: question.text, source_quote: question.source_quote,
+          explanation: "La ideal sería el electrocardiograma; de las ofrecidas, la troponina."
+        )
+        ["Troponina I", "Radiografía de tórax", "Ecocardiograma",
+"Gasometría arterial"].each.with_index(1) do |text, position|
+          create(:answer_option, question: variant, position: position, text: text, correct: position == 1)
+        end
       end
     end
   end

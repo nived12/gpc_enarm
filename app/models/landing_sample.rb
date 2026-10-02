@@ -37,7 +37,7 @@ class LandingSample
   end
 
   def self.eligible
-    fully_cited = Question.group(:clinical_case_id)
+    fully_cited = Question.originals.group(:clinical_case_id)
       .having("COUNT(*) >= 2 AND COUNT(*) = COUNT(recommendation_id) AND COUNT(*) = COUNT(NULLIF(source_quote, ''))")
       .select(:clinical_case_id)
 

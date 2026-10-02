@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_02_055738) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_02_060911) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -316,9 +316,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_055738) do
     t.text "source_quote"
     t.text "text", null: false
     t.datetime "updated_at", null: false
-    t.index ["clinical_case_id", "position"], name: "index_questions_on_clinical_case_id_and_position", unique: true
+    t.bigint "variant_of_id"
+    t.index ["clinical_case_id", "position"], name: "index_questions_on_clinical_case_id_and_position", unique: true, where: "(variant_of_id IS NULL)"
     t.index ["clinical_case_id"], name: "index_questions_on_clinical_case_id"
     t.index ["recommendation_id"], name: "index_questions_on_recommendation_id"
+    t.index ["variant_of_id"], name: "index_questions_on_variant_of_id", unique: true
   end
 
   create_table "recommendations", force: :cascade do |t|
@@ -688,6 +690,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_055738) do
   add_foreign_key "question_reports", "users"
   add_foreign_key "question_reports", "users", column: "resolved_by_id"
   add_foreign_key "questions", "clinical_cases"
+  add_foreign_key "questions", "questions", column: "variant_of_id", on_delete: :cascade
   add_foreign_key "questions", "recommendations"
   add_foreign_key "recommendations", "guideline_sections"
   add_foreign_key "reminder_deliveries", "users"

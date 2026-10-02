@@ -109,6 +109,7 @@ es:
           other: "Quedan %{count} preguntas sin responder y contarán como error. ¿Terminar el examen?"
     feedback:
       explanation: "Explicación"
+      best_available: "En esta pregunta la respuesta ideal no estaba entre las opciones, como pasa en el examen real: la correcta es la mejor de las que había."
       source: "Recomendación citada"
       undated: "sin año"
       expired: "Fuera de vigencia"
@@ -540,6 +541,7 @@ es:
         rationales: "Porqués de las opciones"
         screening: "Revisión de guías para el ENARM"
         statement_repair: "Limpieza del texto de las recomendaciones"
+        best_available: "Versiones de mejor opción disponible (Modo ENARM)"
       columns:
         purpose: "Propósito"
         model: "Proveedor · modelo"
