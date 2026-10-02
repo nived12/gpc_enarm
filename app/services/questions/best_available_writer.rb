@@ -9,7 +9,10 @@
 #
 # Not every question allows it: when no remaining option is clearly better than the
 # others, the item would have no defensible answer, so the model may decline and the
-# question keeps no version. The code then checks what it can: the chosen option is one
+# question keeps no version. Reading the first 30 (2026-10-02) found the two shapes that
+# fail: options that are figures ("beyond 38 weeks" for an ideal of 36 is no closer than
+# 34) and a choice useful for a different reason (corticosteroids as a risk factor for
+# osteosarcoma); the prompt now declines both. The code then checks what it can: the chosen option is one
 # of the distractors, and the new one is not the ideal answer brought back.
 module Questions
   class BestAvailableWriter < ApplicationService
@@ -66,6 +69,12 @@ module Questions
            paciente entre los que quedan: el más cercano a la respuesta ideal. Debe ser
            defendible sin duda; si ninguno destaca con claridad sobre los otros dos, o si
            alguno sería peligroso como "mejor opción", responde {"suitable": false}.
+           La elegida debe perseguir el MISMO objetivo clínico que la ideal, solo que peor
+           (otro anticonvulsivo cuando falta el de elección, otro diurético, otro estudio
+           para la misma sospecha). No vale una opción útil por otro motivo o para otro
+           diagnóstico. Responde también {"suitable": false} si las opciones son cifras
+           (semanas, edades, dosis, porcentajes, puntos de corte): entre números no hay una
+           "más cercana" defendible.
         3. Escribe un distractor nuevo, del mismo tipo y longitud que los demás, plausible
            pero claramente inferior al elegido. No puede ser la respuesta ideal ni decir lo
            mismo con otras palabras.
