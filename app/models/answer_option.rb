@@ -21,6 +21,9 @@ class AnswerOption < ApplicationRecord
   validates :position, presence: true, uniqueness: { scope: :question_id }
 
   scope :correct, -> { where(correct: true) }
+  # The rationale pipeline reads a case's questions, which are its originals; a
+  # best-available version's options are judged with the version instead.
+  scope :of_originals, -> { joins(:question).merge(Question.originals) }
   scope :with_rationale, -> { where(correct: false).where.not(rationale: nil) }
   scope :rationale_unjudged, -> { with_rationale.where(rationale_verdict: nil) }
   scope :rationale_rejected, -> { with_rationale.where(rationale_verdict: REJECTED_RATIONALE) }

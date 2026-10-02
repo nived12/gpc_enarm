@@ -70,7 +70,10 @@ module Questions
       ClinicalCase.order(:id).includes(
         :generation_run, :guideline, :topic, :specialty, :setting,
         { clinical_image: { guideline_section: :guideline } },
-        questions: [:answer_options, { recommendation: { guideline_section: :guideline } }]
+        questions: [
+          :answer_options, { best_available_variant: :answer_options },
+          { recommendation: { guideline_section: :guideline } }
+        ]
       )
     end
 
@@ -103,10 +106,22 @@ module Questions
     end
 
     def question_payload(question)
-      question.slice(*QUESTION_ATTRIBUTES).merge(
+      payload = question.slice(*QUESTION_ATTRIBUTES).merge(
         "recommendation" => recommendation_payload(question.recommendation),
-        "options" => question.answer_options.map { |option| option.slice(*OPTION_ATTRIBUTES) }
+        "options" => options_payload(question)
       )
+      variant = question.best_available_variant
+      variant ? payload.merge("best_available" => best_available_payload(variant)) : payload
+    end
+
+    def options_payload(question)
+      question.answer_options.map { |option| option.slice(*OPTION_ATTRIBUTES) }
+    end
+
+    # Modo ENARM's version travels inside its original, which it shares a case, a
+    # citation and a position with; only what differs is written.
+    def best_available_payload(variant)
+      variant.slice(*BestAvailableExporter::ATTRIBUTES).merge("options" => options_payload(variant))
     end
 
     def recommendation_payload(recommendation)

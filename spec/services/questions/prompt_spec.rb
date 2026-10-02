@@ -42,12 +42,12 @@ RSpec.describe Questions::Prompt do
     it "asks for a whole-patient vignette and three questions on a full workup" do
       text = prompt(detail: :full_workup)
 
-      expect(text).to include("paciente COMPLETO", "Signos vitales COMPLETOS", "3 preguntas")
+      expect(text).to include("paciente COMPLETO", "dos párrafos", "Signos vitales COMPLETOS", "3 preguntas")
     end
 
-    it "asks for a short vignette and two questions when focused, still with vitals and an exam" do
+    it "asks for one full paragraph and two questions when focused, still with vitals and an exam" do
       expect(prompt(detail: :focused)).to include(
-        "breve y centrada", "2 preguntas", "signos vitales con unidades", "exploración física dirigida"
+        "un párrafo completo y centrado", "2 preguntas", "signos vitales con unidades", "exploración física dirigida"
       )
     end
 
@@ -76,12 +76,20 @@ RSpec.describe Questions::Prompt do
       )
     end
 
+    # From candidates of the 2026 exam: its register is dense clinical vocabulary, and it
+    # asks which drug or course of action, not how many milligrams.
+    it "asks for the exam's technical register without naming the diagnosis, and no doses" do
+      expect(prompt.squish).to include(
+        "léxico médico técnico y formal", "nunca nombra el diagnóstico", "No preguntes dosis"
+      )
+    end
+
     it "asks for distractors of one kind and length that a physician would consider" do
       expect(prompt).to include("la correcta no es la más larga", "algo que un médico consideraría")
     end
 
     it "falls back to focused rather than trusting an unknown detail level" do
-      expect(prompt(detail: :novela)).to include("breve y centrada")
+      expect(prompt(detail: :novela)).to include("un párrafo completo y centrado")
     end
   end
 

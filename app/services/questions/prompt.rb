@@ -11,7 +11,8 @@ module Questions
     # complete vitals with units, a systematic examination — and then asks about one
     # part of it. Ours were about 45 words with every fact pointing at the answer, which
     # a doctor reading them spotted immediately as too easy. `full_workup` is that whole
-    # patient; `focused` stays short, because not every real item is long either.
+    # patient, in two long paragraphs; `focused` is one, because a 2026 candidate counted
+    # one to two long paragraphs per case — never a short one.
     #
     # Questions per case: the convocatoria says two to three, and a longer vignette earns
     # the third, since there is more in it to ask about.
@@ -62,6 +63,20 @@ module Questions
         recomendaciones.
     TEXT
 
+    # Candidates of the 2026 exam (a first-hand account and the student groups) found its
+    # cases written in dense, formal clinical vocabulary, heavier than in any course, and
+    # asked to practise in that register. Plain-language findings make an item easier
+    # than the exam it simulates. Naming the sign is not naming the disease: the term
+    # must never hand over the diagnosis the question asks for.
+    LEXICON_INSTRUCTIONS = <<~TEXT.strip
+      Escribes con el léxico médico técnico y formal del examen real, denso como un
+      expediente clínico: describe los síntomas y hallazgos que ESTE paciente tiene con su
+      término semiológico y no con palabras coloquiales (por ejemplo, "disnea de medianos
+      esfuerzos" y no "se cansa al caminar"), y no simplifiques el vocabulario para el
+      alumno. El término describe el hallazgo, nunca nombra el diagnóstico ni el signo
+      epónimo que la pregunta pide identificar.
+    TEXT
+
     # Five of the pilot's 197 vignettes, case 250 among them, ended with a question of
     # their own; the student then read a question nobody answers above the one they are
     # asked. Questions::CaseBuilder rejects any that still do.
@@ -95,6 +110,8 @@ module Questions
         quirúrgicos, pruebas o índices que solo usa el especialista) ni datos
         administrativos (quién realiza un procedimiento, cómo se entrega la información).
         Si una recomendación solo trata esos detalles, no la uses.
+      - No preguntes dosis, cifras de dosificación ni esquemas de administración: el
+        examen real pregunta qué fármaco o qué conducta, no cuántos miligramos.
       - Evalúa una decisión clínica que el alumno debe razonar integrando los datos del caso
         con la recomendación, con la dificultad del ENARM real. Nunca pregunta por un dato
         que la viñeta ya dice: si la viñeta describe un signo, no preguntes cuál es el signo.
@@ -127,7 +144,7 @@ module Questions
     def to_s
       <<~TEXT
         Eres redactor de reactivos para el ENARM, el examen nacional de residencias médicas
-        en México. Escribes con terminología clínica formal.
+        en México. #{LEXICON_INSTRUCTIONS}
 
         A partir de las siguientes recomendaciones de la guía de práctica clínica
         "#{guideline.title}", escribe #{CASES} casos clínicos, cada uno con
@@ -188,15 +205,16 @@ module Questions
     # different thing entirely.
     def vignette_instructions
       return <<~TEXT.strip if detail == :focused
-        La viñeta es breve y centrada (100 a 130 palabras), pero trae al paciente: edad,
-        sexo, antecedentes relevantes con su duración, motivo de consulta con su evolución,
-        signos vitales con unidades y la exploración física dirigida, con algún hallazgo
-        normal. No todo reactivo del examen real es largo, pero ninguno omite al paciente.
+        La viñeta es un párrafo completo y centrado (130 a 170 palabras) que trae al
+        paciente: edad, sexo, antecedentes relevantes con su duración, motivo de consulta
+        con su evolución, signos vitales con unidades y la exploración física dirigida, con
+        algún hallazgo normal. Es el reactivo más corto del examen, pero ninguno omite al
+        paciente.
       TEXT
 
       <<~TEXT.strip
-        La viñeta debe presentar al paciente COMPLETO, como en el examen real (150 a 200
-        palabras; menos de 150 es demasiado corta):
+        La viñeta debe presentar al paciente COMPLETO, como en el examen real: dos párrafos
+        largos (200 a 280 palabras; menos de 200 es demasiado corta):
         - Edad, sexo y antecedentes con su duración y tratamiento ("diabetes mellitus tipo 2
           de 12 años en manejo irregular", "hipertensión controlada con IECA").
         - Motivo de consulta con inicio, duración y evolución precisas.

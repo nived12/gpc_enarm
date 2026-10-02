@@ -8,13 +8,33 @@ class Question < ApplicationRecord
   belongs_to :clinical_case
   belongs_to :recommendation, optional: true
 
+  # Modo ENARM's "best available answer" version of this question: the ideal answer left
+  # out, the closest remaining option marked correct, and an explanation that names the
+  # ideal one. Students in the 2026 sitting met items like that; practice never shows
+  # them, so the real answer is still what a student learns. Questions::BestAvailableWriter
+  # writes them and Exams::Builder deals some into a Modo ENARM sitting.
+  belongs_to :variant_of, class_name: "Question", optional: true, inverse_of: :best_available_variant
+  has_one :best_available_variant, class_name: "Question", foreign_key: :variant_of_id,
+    dependent: :destroy, inverse_of: :variant_of
+
   has_many :answer_options, -> { order(:position) }, dependent: :destroy, inverse_of: :question
   has_many :question_reports, dependent: :destroy
 
   OPTION_COUNT = 4
 
   validates :text, presence: true
-  validates :position, presence: true, uniqueness: { scope: :clinical_case_id }
+  validates :position, presence: true
+  validates :position, uniqueness: { scope: :clinical_case_id, conditions: -> { originals } }, unless: :variant_of_id?
+
+  # A version reaches a student only once a model of another family, answering blind, lands
+  # on the option it marks correct (Questions::BestAvailableVerifier).
+  enum :best_available_verdict,
+    { supported: "supported", disputed: "disputed", ambiguous: "ambiguous" },
+    prefix: :best_available
+
+  # Everything a case asks outside Modo ENARM. Every query that counts or draws a case's
+  # questions reads these, never Question alone.
+  scope :originals, -> { where(variant_of_id: nil) }
   validate :quote_must_come_from_the_recommendation
 
   # Whether a recommendation's text contains a quote, by the gate's own rule below.

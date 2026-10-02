@@ -169,14 +169,30 @@ module Questions
     def import_question(kase, attributes, counts)
       options = attributes.delete("options")
       reference = attributes.delete("recommendation")
+      best_available = attributes.delete("best_available")
 
       question = kase.questions.find_or_initialize_by(position: attributes["position"])
       counts[question.new_record? ? :questions_created : :questions_updated] += 1
       question.update!(attributes.merge(recommendation: recommendation_for(reference, attributes["source_quote"])))
 
+      write_options(question, options)
+      import_best_available(question, best_available) if best_available
+    end
+
+    def write_options(question, options)
       Array(options).each do |option|
         question.answer_options.find_or_initialize_by(position: option["position"]).update!(option)
       end
+    end
+
+    def import_best_available(question, attributes)
+      variant = question.best_available_variant || question.build_best_available_variant
+      variant.update!(
+        clinical_case: question.clinical_case, position: question.position, text: question.text,
+        recommendation: question.recommendation, source_quote: question.source_quote,
+        **attributes.slice(*BestAvailableExporter::ATTRIBUTES).symbolize_keys
+      )
+      write_options(variant, attributes["options"])
     end
 
     # The far side rebuilds recommendations with its own parser rather than receiving

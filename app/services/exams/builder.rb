@@ -52,8 +52,16 @@ module Exams
     # Each mode has defaults; the student may change either. A missing or unknown value
     # falls back to the default rather than failing the exam.
     def feedback_timing
+      return "at_end" if enarm_mode?
+
       chosen = settings[:feedback_timing]
       Exam.feedback_timings.key?(chosen) ? chosen : Exam.default_feedback_timing(mode)
+    end
+
+    # The real sitting's booklet and answer sheet, which only a rehearsal of the whole
+    # exam offers. Its answers are read back at the end, as the real ones are.
+    def enarm_mode?
+      Exam::EXAM_LENGTH_MODES.include?(mode) && ActiveModel::Type::Boolean.new.cast(settings[:enarm_mode]) == true
     end
 
     # "" is the student choosing no clock at all, which is different from not saying.
@@ -97,9 +105,35 @@ module Exams
     # over by as little as a case allows, as the draw always did.
     def pick
       rows = own_topics_first(ordered(candidates))
-      quotas = exact_quotas(rows.map(&:last).tally)
-      chosen = quotas ? rows.select { |row| (quotas[row.last] -= 1) >= 0 } : overshoot(rows)
+      chosen = by_difficulty(rows) || take(rows, target)
       filters["interleave"] ? chosen : blocked(chosen)
+    end
+
+    def take(rows, wanted)
+      quotas = exact_quotas(rows.map(&:last).tally, wanted)
+      quotas ? rows.select { |row| (quotas[row.last] -= 1) >= 0 } : overshoot(rows, wanted)
+    end
+
+    # A rehearsal of the real exam takes its difficulty mix too — the 2026 answer sheet
+    # was 70 low, 140 medium and 70 high of 280 — drawn level by level from the already
+    # interleaved order, so the levels stay mixed through the exam. Exactly 280 matters
+    # more than the mix, so a level the bank cannot fill to its count exactly — too few
+    # questions, or case sizes that cannot add up to it — sends the whole exam back to
+    # the plain draw, which can mix sizes across levels.
+    def by_difficulty(rows)
+      return unless Exam::EXAM_LENGTH_MODES.include?(mode)
+
+      levels = rows.group_by { |row| row[2] }
+      drawn = difficulty_targets.map { |level, count| [take(levels.fetch(level, []), count), count] }
+      return unless drawn.all? { |taken, count| taken.sum(&:last) == count }
+
+      kept = drawn.flat_map(&:first).to_set
+      rows.select { |row| kept.include?(row) }
+    end
+
+    def difficulty_targets
+      low, high = Exam::DIFFICULTY_MIX.values_at("low", "high").map { |share| (target * share).round }
+      { "low" => low, "medium" => target - low - high, "high" => high }
     end
 
     # A study day widened by its setting still quizzes its own topics first: in a context
@@ -111,12 +145,12 @@ module Exams
       rows.partition { |row| own.include?(row.first) }.flatten(1)
     end
 
-    def exact_quotas(available)
+    def exact_quotas(available, wanted)
       bank = available.sum { |size, count| size * count }
-      return available.dup if bank <= target
+      return available.dup if bank <= wanted
 
-      combinations(available.to_a, target).min_by do |quotas|
-        quotas.sum { |size, count| ((size * count) - (target * size * available[size] / bank.to_f))**2 }
+      combinations(available.to_a, wanted).min_by do |quotas|
+        quotas.sum { |size, count| ((size * count) - (wanted * size * available[size] / bank.to_f))**2 }
       end
     end
 
@@ -130,9 +164,9 @@ module Exams
       end
     end
 
-    def overshoot(rows)
+    def overshoot(rows, wanted)
       total = 0
-      rows.take_while { |row| (total < target).tap { total += row.last } }
+      rows.take_while { |row| (total < wanted).tap { total += row.last } }
     end
 
     # A specialty picked is an area: the cases about it and the cases set in it, each
@@ -145,8 +179,8 @@ module Exams
       cases = cases.where.not(id: seen_cases) if filters["unseen_only"]
       cases = cases.where(id: missed_cases) if filters["previously_wrong_only"]
 
-      cases.joins(:questions).group(:id, :specialty_id)
-           .order(:id).pluck(:id, :specialty_id, Arel.sql("COUNT(questions.id)"))
+      cases.joins(:questions).group(:id, :specialty_id, :difficulty)
+           .order(:id).pluck(:id, :specialty_id, :difficulty, Arel.sql("COUNT(questions.id)"))
     end
 
     # `also_setting_ids` widens the topics rather than narrowing them: a study day in one
@@ -172,7 +206,7 @@ module Exams
     # Shuffled, then dealt one specialty at a time, so the draw is interleaved and a
     # short quiz still touches several specialties.
     def ordered(rows)
-      queues = rows.shuffle(random: random).group_by { |_id, specialty_id, _count| specialty_id }.values
+      queues = rows.shuffle(random: random).group_by { |_id, specialty_id, _difficulty, _count| specialty_id }.values
       dealt = []
       dealt.concat(queues.filter_map(&:shift)) until queues.all?(&:empty?)
       dealt
@@ -180,20 +214,32 @@ module Exams
 
     def blocked(rows)
       positions = Specialty.pluck(:id, :position).to_h
-      rows.each_with_index.sort_by { |(_id, specialty_id, _count), index| [positions.fetch(specialty_id, Float::INFINITY), index] }
+      rows.each_with_index.sort_by { |(_id, specialty_id, _difficulty, _count), index| [positions.fetch(specialty_id, Float::INFINITY), index] }
           .map(&:first)
+    end
+
+    # Modo ENARM deals in some questions whose ideal answer is not offered, as the real
+    # sitting did — some, never all: the rest keep the real answer among the options.
+    # Which ones is drawn afresh for every exam, from the questions whose version the
+    # second opinion supported.
+    def with_best_available(sequence)
+      return sequence unless enarm_mode?
+
+      variants = Question.best_available_supported.where(variant_of_id: sequence.map(&:id)).index_by(&:variant_of_id)
+      swapped = variants.keys.sample((sequence.size * Exam::BEST_AVAILABLE_SHARE).round, random: random).to_set
+      sequence.map { |question| swapped.include?(question.id) ? variants.fetch(question.id) : question }
     end
 
     def create_exam(picked)
       case_ids = picked.map(&:first)
-      questions = Question.where(clinical_case_id: case_ids).order(:position).group_by(&:clinical_case_id)
-      sequence = case_ids.flat_map { |case_id| questions.fetch(case_id) }
+      questions = Question.originals.where(clinical_case_id: case_ids).order(:position).group_by(&:clinical_case_id)
+      sequence = with_best_available(case_ids.flat_map { |case_id| questions.fetch(case_id) })
 
       pace = seconds_per_question
       Exam.transaction do
         exam = user.exams.create!(
           mode: mode, filters: filters, question_count: sequence.size,
-          feedback_timing: feedback_timing, seconds_per_question: pace,
+          feedback_timing: feedback_timing, seconds_per_question: pace, enarm_mode: enarm_mode?,
           time_limit_seconds: pace && (pace * sequence.size),
           started_at: Time.current, running_since: Time.current
         )

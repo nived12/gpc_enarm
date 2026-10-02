@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_28_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_02_145943) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -169,6 +169,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000000) do
     t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.integer "elapsed_seconds", default: 0, null: false
+    t.boolean "enarm_mode", default: false, null: false
     t.string "feedback_timing", default: "after_each", null: false
     t.jsonb "filters", default: {}, null: false
     t.string "mode", null: false
@@ -307,6 +308,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000000) do
   end
 
   create_table "questions", force: :cascade do |t|
+    t.datetime "best_available_declined_at"
+    t.text "best_available_note"
+    t.string "best_available_verdict"
     t.bigint "clinical_case_id", null: false
     t.datetime "created_at", null: false
     t.text "explanation"
@@ -315,9 +319,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000000) do
     t.text "source_quote"
     t.text "text", null: false
     t.datetime "updated_at", null: false
-    t.index ["clinical_case_id", "position"], name: "index_questions_on_clinical_case_id_and_position", unique: true
+    t.bigint "variant_of_id"
+    t.index ["clinical_case_id", "position"], name: "index_questions_on_clinical_case_id_and_position", unique: true, where: "(variant_of_id IS NULL)"
     t.index ["clinical_case_id"], name: "index_questions_on_clinical_case_id"
     t.index ["recommendation_id"], name: "index_questions_on_recommendation_id"
+    t.index ["variant_of_id"], name: "index_questions_on_variant_of_id", unique: true
   end
 
   create_table "recommendations", force: :cascade do |t|
@@ -687,6 +693,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000000) do
   add_foreign_key "question_reports", "users"
   add_foreign_key "question_reports", "users", column: "resolved_by_id"
   add_foreign_key "questions", "clinical_cases"
+  add_foreign_key "questions", "questions", column: "variant_of_id", on_delete: :cascade
   add_foreign_key "questions", "recommendations"
   add_foreign_key "recommendations", "guideline_sections"
   add_foreign_key "reminder_deliveries", "users"

@@ -14,7 +14,9 @@
       <div class="ml-auto flex items-center gap-2"
            data-controller="timer"
            data-timer-elapsed-value="<%= exam.current_elapsed %>"
-           data-timer-limit-value="<%= exam.time_limit_seconds.to_i %>">
+           data-timer-limit-value="<%= exam.time_limit_seconds.to_i %>"
+           data-timer-warn-at-value="<%= exam.final_warning_seconds.to_i %>"
+           data-timer-warning-id-value="<%= dom_id(exam, :final_warning) %>">
         <span class="sr-only"><%= exam.time_limit_seconds ? t("exams.bar.time_left") : t("exams.bar.time_spent") %></span>
         <span class="numeric text-sm text-ink-muted" data-timer-target="display"><%= clock_reading(exam) %></span>
         <%= button_to t("exams.bar.pause"), pause_exam_path(exam), method: :patch,
@@ -36,4 +38,13 @@
   <div class="mt-3 h-1 overflow-hidden rounded-full bg-surface-sunk" aria-hidden="true">
     <%= render "exams/progress_fill", exam: exam, progress: progress %>
   </div>
+
+  <%# Inside the strip, not over the page: the real sitting says it once and lets you work.
+      The live region is always there, empty until it is time, so a screen reader hears the
+      text arrive; the timer fills it from data-message. %>
+  <% if exam.status_in_progress? && exam.final_warning_seconds %>
+    <% message = t("exams.bar.final_warning", minutes: exam.final_warning_seconds / 60) %>
+    <p class="mt-3 text-sm font-medium text-accent empty:mt-0" role="status"
+       id="<%= dom_id(exam, :final_warning) %>" data-message="<%= message %>"><%= message if exam.final_warning_due? %></p>
+  <% end %>
 </div>

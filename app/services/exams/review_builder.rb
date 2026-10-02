@@ -19,7 +19,7 @@ module Exams
     end
 
     def candidates
-      counts = Question.where(clinical_case_id: due_case_ids).group(:clinical_case_id).count
+      counts = Question.originals.where(clinical_case_id: due_case_ids).group(:clinical_case_id).count
       specialties = ClinicalCase.where(id: due_case_ids).pluck(:id, :specialty_id).to_h
       due_case_ids.map { |id| [id, specialties[id], counts[id]] }
     end

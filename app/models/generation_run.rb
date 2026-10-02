@@ -11,7 +11,7 @@ class GenerationRun < ApplicationRecord
 
   enum :purpose,
     { generation: "generation", verification: "verification", bake_off: "bake_off", rationales: "rationales",
-      screening: "screening", statement_repair: "statement_repair" },
+      screening: "screening", statement_repair: "statement_repair", best_available: "best_available" },
     prefix: :purpose
 
   enum :status,

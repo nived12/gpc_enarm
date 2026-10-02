@@ -80,6 +80,7 @@ en:
       pause: "Pause"
       finish: "Finish"
       back_to_results: "Results"
+      final_warning: "Less than %{minutes} minutes left to finish the exam."
     question:
       case_label: "Clinical case · question %{number} of %{total}"
       choose: "Choose an answer"
@@ -106,6 +107,7 @@ en:
           other: "%{count} questions are unanswered and will count as wrong. Finish the exam?"
     feedback:
       explanation: "Explanation"
+      best_available: "In this question the ideal answer was not among the options, as happens on the real exam: the correct one is the best of those offered."
       source: "Cited recommendation"
       undated: "undated"
       expired: "Past its validity"
@@ -138,6 +140,11 @@ en:
       mock:
         length: "Length"
         submit: "Start mock exam"
+        enarm_mode:
+          label: "ENARM mode"
+          hint: "Like the real exam: you read the booklet and mark each answer on a separate sheet. Explanations come at the end."
+        real_conditions: "Like ENARM day: the real exam's difficulty mix (a quarter low, half medium, a quarter high) when the bank allows it, and with a clock, a single time warning 20 minutes before the end."
+        imperfect_options: "On the real exam the ideal answer is sometimes not among the options. Then there is no point looking for it: choose the best of those offered."
       custom:
         question_count: "Number of questions"
         specialties: "Specialties"
@@ -177,13 +184,17 @@ en:
           at_end: "A single page, like the real exam. You can change answers until you finish."
     sheet:
       answered: "%{answered} of %{total} answered"
-      case_label: "Clinical case · questions %{first} to %{last}"
-      case_label_one: "Clinical case · question %{number}"
+      question_heading: "Question %{number}"
       save: "Save answer"
       saved: "Answer saved"
       finish: "Finish exam"
       finish_hint: "You can go back to any question and change your answer until you finish."
       confirm_finish: "Finish the exam? Unanswered questions count as wrong."
+    booklet:
+      answer_sheet: "Answer sheet"
+      open_sheet: "Answer sheet"
+      close_sheet: "Back to the booklet"
+      bubble: "Question %{number}, option %{letter}"
     finish:
       title: "You answered everything"
       body:
@@ -215,6 +226,7 @@ en:
       title: "Results"
       tally: "%{correct} correct out of %{total} questions"
       time: "time %{time}"
+      pace: "Pace: %{seconds} s per question answered · the real exam allows about %{real} s"
       by_specialty: "By specialty"
       by_specialty_overlap: "Each question counts under its case's specialty and also under the setting it happens in (Emergency, Family Medicine or Public Health), so the rows add up to more than the total."
       specialty_tally: "%{correct} of %{total}"
@@ -345,6 +357,7 @@ en:
       another_option_valid: "another option is also correct"
       beyond_general_practice: "specialist detail, beyond what a general physician is expected to know"
       administrative_trivia: "administrative detail, not a clinical decision"
+      dose_question: "asks for a dose; the real exam asks which drug or course of action"
     question_count:
       one: "1 question"
       other: "%{count} questions"
@@ -526,6 +539,7 @@ en:
         rationales: "Option rationales"
         screening: "Guideline screening for the ENARM"
         statement_repair: "Recommendation text clean-up"
+        best_available: "Best-available-answer versions (ENARM mode)"
       columns:
         purpose: "Purpose"
         model: "Provider · model"

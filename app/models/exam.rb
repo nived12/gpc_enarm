@@ -41,6 +41,19 @@ class Exam < ApplicationRecord
   SUGGESTED_SECONDS_PER_QUESTION = 75
   PACES = [60, 75, 90, 120].freeze
 
+  # The real answer sheet's split, 70 low, 140 medium and 70 high of 280 (a candidate's
+  # 2026 sheet). Only the exam-length modes follow it; see Exams::Builder#by_difficulty.
+  DIFFICULTY_MIX = { "low" => 0.25, "medium" => 0.5, "high" => 0.25 }.freeze
+
+  # The real sitting announces the time once, twenty minutes before the end; the
+  # exam-length modes warn at the same moment.
+  FINAL_WARNING_SECONDS = 20 * 60
+
+  # The share of a Modo ENARM sitting asked with the ideal answer left out. A first guess
+  # until a 2026 candidate estimates how many such items the real exam had.
+  BEST_AVAILABLE_SHARE = 0.1
+
+
   validates :question_count, numericality: { greater_than: 0 }
   validates :seconds_per_question, inclusion: { in: PACES }, allow_nil: true
 
@@ -77,6 +90,18 @@ class Exam < ApplicationRecord
 
   def remaining_seconds
     [time_limit_seconds - current_elapsed, 0].max if time_limit_seconds
+  end
+
+  # Only a timed rehearsal of the real exam gets the real sitting's one warning, and only
+  # one long enough to have a moment worth warning about.
+  def final_warning_seconds
+    return unless EXAM_LENGTH_MODES.include?(mode) && time_limit_seconds.to_i > FINAL_WARNING_SECONDS
+
+    FINAL_WARNING_SECONDS
+  end
+
+  def final_warning_due?
+    !final_warning_seconds.nil? && remaining_seconds <= final_warning_seconds
   end
 
   def time_up?
@@ -150,7 +175,10 @@ class Exam < ApplicationRecord
 
   # What analytics reports about a sitting, at the start and again at the end.
   def usage_properties
-    { mode: mode, question_count: question_count, feedback_timing: feedback_timing, timed: !time_limit_seconds.nil? }
+    {
+      mode: mode, question_count: question_count, feedback_timing: feedback_timing, timed: !time_limit_seconds.nil?,
+      enarm_mode: enarm_mode
+    }
   end
 
   private

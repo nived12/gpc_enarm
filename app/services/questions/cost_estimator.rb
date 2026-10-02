@@ -160,7 +160,7 @@ module Questions
     # questions:full_run, so they belong in its bill.
     def pending_rationale_cases
       @pending_rationale_cases ||= begin
-        unjudged = AnswerOption.rationale_unjudged.joins(:question).select("questions.clinical_case_id")
+        unjudged = AnswerOption.rationale_unjudged.of_originals.select("questions.clinical_case_id")
         ClinicalCase.verdict_supported.where(id: unjudged).where.not(status: "retired").count
       end
     end

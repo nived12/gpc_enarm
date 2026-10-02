@@ -298,6 +298,61 @@ RSpec.describe "Exams", type: :request do
       expect(response.body).not_to include(I18n.t("exams.feedback.source"), "<mark>", I18n.t("exams.question.wrong"))
     end
 
+    it "heads every question as the real booklet does, and states the real conditions" do
+      get exam_path(exam)
+      expect(response.body).to include(*(1..3).map { |n| I18n.t("exams.sheet.question_heading", number: n) })
+
+      get new_exam_path
+      expect(response.body).to include(I18n.t("exams.new.mock.imperfect_options"))
+    end
+
+    # The exam's clock is 225 s, so a warning at 200 s left is due after 25 s.
+    it "warns once, near the end, and keeps the live region empty before then" do
+      stub_const("Exam::FINAL_WARNING_SECONDS", 200)
+      message = I18n.t("exams.bar.final_warning", minutes: 3)
+
+      get exam_path(exam)
+      expect(response.body).to include(%(data-message="#{message}"></p>))
+
+      exam.update!(running_since: 30.seconds.ago)
+      get exam_path(exam)
+      expect(response.body).to include(%(data-message="#{message}">#{message}</p>))
+    end
+
+    it "has no warning on an exam too short to need one" do
+      get exam_path(exam)
+
+      expect(response.body).not_to include(%(id="final_warning_exam_))
+    end
+
+    it "prints the booklet and an answer sheet in Modo ENARM, where a bubble saves like an option" do
+      post exams_path, params: { mode: "full_exam", settings: { enarm_mode: "1" } }
+      enarm = Exam.last
+
+      get exam_path(enarm)
+      expect(response.body).to include(
+        I18n.t("exams.booklet.answer_sheet"), I18n.t("exams.booklet.bubble", number: 3, letter: "D"), *cases.map(&:stem)
+      )
+      expect(response.body).not_to include(I18n.t("exams.confidence.levels.guess"))
+
+      exam_question = enarm.exam_questions.find_by!(position: 3)
+      post exam_question_answer_path(enarm, 3), headers: { "Accept" => "text/vnd.turbo-stream.html" },
+        params: { answer_option_id: exam_question.question.answer_options.first.id }
+      expect(response.body).to include(I18n.t("exams.sheet.answered", answered: 1, total: 3))
+    end
+
+    it "says so in the explanation when the ideal answer was left out" do
+      variant = create(:published_case, questions_count: 1, best_available: true).questions.sole.best_available_variant
+      exam.exam_questions.find_by!(position: 3).update!(question: variant, clinical_case: variant.clinical_case)
+      patch complete_exam_path(exam)
+
+      get exam_question_path(exam, 3)
+      expect(response.body).to include(I18n.t("exams.feedback.best_available"))
+
+      get exam_question_path(exam, 1)
+      expect(response.body).not_to include(I18n.t("exams.feedback.best_available"))
+    end
+
     it "saves each choice in place, in any order, and a change of mind replaces it" do
       choose(3, "Troponina I")
       expect(response.media_type).to eq("text/vnd.turbo-stream.html")
@@ -341,10 +396,22 @@ RSpec.describe "Exams", type: :request do
       patch complete_exam_path(exam)
       follow_redirect!
       expect(response.body).to include("33.3%", I18n.t("exams.results.tally", correct: 1, total: 3))
+      expect(response.body).to include(I18n.t("exams.results.pace", seconds: 0, real: 75))
 
       get exam_question_path(exam, 3)
       expect(response.body).to include(I18n.t("exams.question.unanswered"), I18n.t("exams.feedback.source"))
       expect(response.body).to include(I18n.t("exams.question.back_to_results"))
+    end
+
+    it "reports the pace per question answered" do
+      choose(1, "Troponina I")
+      choose(2, "Troponina I")
+      exam.update!(elapsed_seconds: 150, running_since: nil)
+
+      patch complete_exam_path(exam)
+      follow_redirect!
+
+      expect(response.body).to include(I18n.t("exams.results.pace", seconds: 75, real: 75))
     end
 
     it "ends the exam when the clock runs out" do

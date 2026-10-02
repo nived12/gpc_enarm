@@ -82,6 +82,7 @@ es:
       pause: "Pausar"
       finish: "Terminar"
       back_to_results: "Resultados"
+      final_warning: "Quedan menos de %{minutes} minutos para terminar el examen."
     question:
       case_label: "Caso clínico · pregunta %{number} de %{total}"
       choose: "Elige una respuesta"
@@ -108,6 +109,7 @@ es:
           other: "Quedan %{count} preguntas sin responder y contarán como error. ¿Terminar el examen?"
     feedback:
       explanation: "Explicación"
+      best_available: "En esta pregunta la respuesta ideal no estaba entre las opciones, como pasa en el examen real: la correcta es la mejor de las que había."
       source: "Recomendación citada"
       undated: "sin año"
       expired: "Fuera de vigencia"
@@ -140,6 +142,11 @@ es:
       mock:
         length: "Extensión"
         submit: "Empezar simulacro"
+        enarm_mode:
+          label: "Modo ENARM"
+          hint: "Como el examen real: lees el cuadernillo y marcas cada respuesta en una hoja aparte. Las explicaciones llegan al final."
+        real_conditions: "Como el día del ENARM: la mezcla de dificultad del examen real (una cuarta parte baja, la mitad media y una cuarta parte alta) cuando el banco la permite, y con reloj, un solo aviso de tiempo a 20 minutos del final."
+        imperfect_options: "En el examen real, a veces la respuesta ideal no aparece entre las opciones. Ahí no hay que buscarla: se elige la mejor de las que hay."
       custom:
         question_count: "Número de preguntas"
         specialties: "Especialidades"
@@ -179,13 +186,17 @@ es:
           at_end: "Una sola página, como el examen real. Puedes cambiar respuestas hasta terminar."
     sheet:
       answered: "%{answered} de %{total} respondidas"
-      case_label: "Caso clínico · preguntas %{first} a %{last}"
-      case_label_one: "Caso clínico · pregunta %{number}"
+      question_heading: "Pregunta %{number}"
       save: "Guardar respuesta"
       saved: "Respuesta guardada"
       finish: "Terminar examen"
       finish_hint: "Puedes volver a cualquier pregunta y cambiar tu respuesta hasta terminar."
       confirm_finish: "¿Terminar el examen? Las preguntas sin responder cuentan como error."
+    booklet:
+      answer_sheet: "Hoja de respuestas"
+      open_sheet: "Hoja de respuestas"
+      close_sheet: "Volver al cuadernillo"
+      bubble: "Pregunta %{number}, opción %{letter}"
     finish:
       title: "Respondiste todo"
       body:
@@ -217,6 +228,7 @@ es:
       title: "Resultados"
       tally: "%{correct} aciertos de %{total} preguntas"
       time: "tiempo %{time}"
+      pace: "Ritmo: %{seconds} s por pregunta respondida · el examen real da unos %{real} s"
       by_specialty: "Por especialidad"
       by_specialty_overlap: "Cada pregunta cuenta en la especialidad de su caso y también en el contexto donde ocurre (Urgencias, Medicina Familiar o Salud Pública), así que las filas suman más que el total."
       specialty_tally: "%{correct} de %{total}"
@@ -347,6 +359,7 @@ es:
       another_option_valid: "otra opción también es correcta"
       beyond_general_practice: "detalle de subespecialidad, fuera de lo que se espera de un médico general"
       administrative_trivia: "dato administrativo, no una decisión clínica"
+      dose_question: "pregunta una dosis; el examen real pregunta qué fármaco o qué conducta"
     question_count:
       one: "1 pregunta"
       other: "%{count} preguntas"
@@ -528,6 +541,7 @@ es:
         rationales: "Porqués de las opciones"
         screening: "Revisión de guías para el ENARM"
         statement_repair: "Limpieza del texto de las recomendaciones"
+        best_available: "Versiones de mejor opción disponible (Modo ENARM)"
       columns:
         purpose: "Propósito"
         model: "Proveedor · modelo"

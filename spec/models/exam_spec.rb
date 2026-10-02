@@ -46,6 +46,17 @@ RSpec.describe Exam do
       expect([timed.remaining_seconds, timed.time_up?]).to eq([0, true])
       expect([untimed.remaining_seconds, untimed.time_up?]).to eq([nil, false])
     end
+
+    it "gives only a timed rehearsal longer than twenty minutes its warning, due in the last twenty" do
+      freeze_time
+      long = build_exam(mode: "full_exam", time_limit_seconds: 3600, running_since: Time.current)
+      late = build_exam(mode: "full_exam", time_limit_seconds: 3600, running_since: 41.minutes.ago)
+
+      expect([long.final_warning_seconds, long.final_warning_due?, late.final_warning_due?]).to eq([1200, false, true])
+      expect(build_exam(mode: "full_exam", time_limit_seconds: 1200).final_warning_seconds).to be_nil
+      expect(build_exam(mode: "full_exam").final_warning_due?).to be(false)
+      expect(build_exam(mode: "quick_quiz", time_limit_seconds: 3600).final_warning_seconds).to be_nil
+    end
   end
 
   describe "#discard!" do

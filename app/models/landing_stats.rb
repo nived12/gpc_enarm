@@ -9,7 +9,7 @@ class LandingStats
     Rails.cache.fetch("landing_stats", expires_in: 1.hour) do
       published = ClinicalCase.status_published
       Counts.new(
-        questions: Question.where(clinical_case_id: published.select(:id)).count,
+        questions: Question.originals.where(clinical_case_id: published.select(:id)).count,
         cases: published.count,
         guidelines: published.distinct.count(:guideline_id),
         mock_questions: Exam::QUESTION_COUNTS.fetch("full_exam")

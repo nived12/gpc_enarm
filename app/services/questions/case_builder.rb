@@ -21,7 +21,7 @@ module Questions
     # Below this length a "question" is a word or two, which any vignette may contain.
     QUESTION_ECHO_MIN_LENGTH = 20
 
-    # The prompt asks for 100 words at the least; this is the floor under it. The first
+    # The prompt asks for 130 words at the least; this is the floor under it. The first
     # pilot's short cases (52–90 words) were the thin ones, with the obvious distractors.
     MIN_STEM_WORDS = 80
 

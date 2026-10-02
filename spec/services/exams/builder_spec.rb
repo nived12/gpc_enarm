@@ -92,6 +92,54 @@ RSpec.describe Exams::Builder do
     )
   end
 
+  describe "the real exam's difficulty mix" do
+    before { stub_const("Exam::QUESTION_COUNTS", Exam::QUESTION_COUNTS.merge("full_exam" => 8)) }
+
+    def questions_by_level(exam)
+      exam.exam_questions.includes(:clinical_case).map { |row| row.clinical_case.difficulty }.tally
+    end
+
+    it "draws a quarter low, half medium and a quarter high on an exam-length mode, exactly" do
+      %w[low medium high].each do |level|
+        2.times { create(:published_case, difficulty: level, questions_count: 3) }
+        2.times { create(:published_case, difficulty: level, questions_count: 2) }
+      end
+
+      exam = build(mode: "full_exam").payload[:exam]
+
+      expect(questions_by_level(exam)).to eq("low" => 2, "medium" => 4, "high" => 2)
+    end
+
+    it "falls back to the plain draw when the bank is short of a level" do
+      8.times { create(:published_case, difficulty: "low", questions_count: 1) }
+      create(:published_case, difficulty: "high", questions_count: 1)
+
+      exam = build(mode: "full_exam").payload[:exam]
+
+      expect([exam.question_count, questions_by_level(exam)["high"]]).to eq([8, nil]).or eq([8, 1])
+    end
+
+    # Three-question cases cannot make a level of two; taking that level alone would run
+    # the exam over, so the plain draw, which mixes sizes across levels, decides.
+    it "falls back to the plain draw when a level's case sizes cannot add up to its count" do
+      %w[low high].each { |level| 2.times { create(:published_case, difficulty: level, questions_count: 3) } }
+      4.times { create(:published_case, difficulty: "medium", questions_count: 1) }
+
+      exam = build(mode: "full_exam").payload[:exam]
+
+      expect(exam.question_count).to eq(8)
+    end
+
+    it "splits a longer exam with the remainder in the middle" do
+      stub_const("Exam::QUESTION_COUNTS", Exam::QUESTION_COUNTS.merge("extended_exam" => 10))
+      %w[low medium high].each { |level| 6.times { create(:published_case, difficulty: level, questions_count: 1) } }
+
+      exam = build(mode: "extended_exam").payload[:exam]
+
+      expect(questions_by_level(exam)).to eq("low" => 3, "medium" => 4, "high" => 3)
+    end
+  end
+
   it "takes the student's own conditions, where no clock at all is a choice" do
     create(:published_case, questions_count: 2)
 
@@ -100,6 +148,44 @@ RSpec.describe Exams::Builder do
     ).payload[:exam]
 
     expect(exam).to have_attributes(feedback_timing: "after_each", seconds_per_question: nil, time_limit_seconds: nil)
+  end
+
+  it "sits Modo ENARM only on an exam-length mode, with its answers read back at the end" do
+    create(:published_case, questions_count: 2)
+    settings = { enarm_mode: "1", feedback_timing: "after_each" }
+
+    mock = described_class.call(user: user, mode: "full_exam", settings: settings).payload[:exam]
+    quiz = described_class.call(user: user, mode: "custom", settings: settings).payload[:exam]
+
+    expect([mock.enarm_mode, mock.feedback_timing]).to eq([true, "at_end"])
+    expect([quiz.enarm_mode, quiz.feedback_timing]).to eq([false, "after_each"])
+  end
+
+  describe "Modo ENARM's best-available-answer questions" do
+    before { stub_const("Exam::BEST_AVAILABLE_SHARE", 0.5) }
+
+    def sit(mode: "full_exam", enarm_mode: "1")
+      described_class.call(user: user, mode: mode, settings: { enarm_mode: enarm_mode }, random: Random.new(3))
+                     .payload[:exam].exam_questions.map(&:question)
+    end
+
+    it "asks some questions, never all, with the ideal answer left out, only in Modo ENARM" do
+      2.times { create(:published_case, questions_count: 2, best_available: true) }
+
+      asked = sit
+
+      expect(asked.count(&:variant_of_id?)).to eq(2)
+      expect(asked.map { |question| question.variant_of_id || question.id }.uniq.size).to eq(4)
+      expect(sit(enarm_mode: "0").none?(&:variant_of_id?)).to be(true)
+      expect(sit(mode: "custom").none?(&:variant_of_id?)).to be(true)
+    end
+
+    it "never deals a version the second opinion did not support" do
+      2.times { create(:published_case, questions_count: 2, best_available: true) }
+      Question.where.not(variant_of_id: nil).update_all(best_available_verdict: "disputed")
+
+      expect(sit.none?(&:variant_of_id?)).to be(true)
+    end
   end
 
   it "falls back to the mode's timing for a value the form never offers" do

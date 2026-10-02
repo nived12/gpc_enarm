@@ -11,6 +11,14 @@
     <%= t("exams.results.tally", correct: correct, total: @exam.question_count) %>
     · <%= t("exams.results.time", time: clock(@exam.elapsed_seconds)) %>
   </p>
+  <%# Time per question answered, against the real sitting's: finishing is part of the test.
+      Only where the clock measured answering alone; explanations read along the way would
+      make a practice quiz look slow. %>
+  <% if @exam.feedback_at_end? && answers.any? %>
+    <p class="mt-1 text-sm text-ink-muted">
+      <%= t("exams.results.pace", seconds: @exam.elapsed_seconds / answers.size, real: Exam::SUGGESTED_SECONDS_PER_QUESTION) %>
+    </p>
+  <% end %>
 </section>
 
 <% tally = @exam.tally_by_specialty %>

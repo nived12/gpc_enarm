@@ -189,7 +189,7 @@ namespace :questions do
       purpose: "rationales", provider: provider.name, model: provider.model, started_at: Time.current
     )
 
-    missing = AnswerOption.where(correct: false, rationale: nil).joins(:question).select("questions.clinical_case_id")
+    missing = AnswerOption.where(correct: false, rationale: nil).of_originals.select("questions.clinical_case_id")
     cases = ClinicalCase.where(id: missing).where.not(status: "retired").order(:id).limit(count)
     tally = Hash.new(0)
     cases.each do |kase|
@@ -218,7 +218,7 @@ namespace :questions do
       notes: "rationales"
     )
 
-    unjudged = AnswerOption.rationale_unjudged.joins(:question).select("questions.clinical_case_id")
+    unjudged = AnswerOption.rationale_unjudged.of_originals.select("questions.clinical_case_id")
     cases = ClinicalCase.where(id: unjudged).verdict_supported.where.not(status: "retired")
     tally = Hash.new(0)
     cases.order(:id).limit(count).each do |kase|
@@ -249,7 +249,7 @@ namespace :questions do
       notes: "rewrite"
     )
 
-    rejected = AnswerOption.rationale_rejected.joins(:question).select("questions.clinical_case_id")
+    rejected = AnswerOption.rationale_rejected.of_originals.select("questions.clinical_case_id")
     tally = Hash.new(0)
     ClinicalCase.where(id: rejected).where.not(status: "retired").order(:id).limit(count).each do |kase|
       result = Questions::RationaleWriter.call(kase, run: run, rewrite: true)
@@ -262,6 +262,74 @@ namespace :questions do
     puts "\ncasos=#{tally[:ok]} fallidos=#{tally[:failed]} tokens=#{run.total_tokens} " \
          "costo=$#{format("%.4f", run.cost_usd)}"
     puts "Las razones reescritas quedan sin revisar: corre questions:verify_rationales."
+  end
+
+  desc "Second opinion on Modo ENARM's best-available versions not yet judged (paid) [count]"
+  task :verify_best_available, [:count] => :environment do |_task, args|
+    count = (args[:count] || 50).to_i
+    provider = Llm::Provider.for(:verifier)
+    abort("Falta la clave del verificador. Revisa .env") unless provider.configured?
+
+    run = GenerationRun.create!(
+      purpose: "verification", provider: provider.name, model: provider.model, started_at: Time.current,
+      notes: "best_available"
+    )
+    tally = Hash.new(0)
+    Question.where.not(variant_of_id: nil).where(best_available_verdict: nil).order(:id).limit(count)
+            .includes(:answer_options, :clinical_case).each do |version|
+      result = Questions::BestAvailableVerifier.call(version, run: run)
+      outcome = result.success? ? result.payload[:verdict] : "failed"
+      tally[outcome] += 1
+      puts "versión #{version.id}: #{result.success? ? outcome : result.errors.full_messages.first}"
+    end
+
+    run.update!(status: "completed", finished_at: Time.current)
+    puts "\n#{tally.map { |verdict, total| "#{verdict}=#{total}" }.join(" ")} costo=$#{run.cost_usd.to_f.round(4)}"
+  end
+
+  desc "Write Modo ENARM's best-available versions to a file [path]"
+  task :export_best_available, [:path] => :environment do |_task, args|
+    result = Questions::BestAvailableExporter.call(args[:path] || "tmp/best-available.jsonl.gz")
+    puts "#{result.payload[:path]} · #{result.payload[:versions]} versiones"
+  end
+
+  desc "Add the best-available versions in a file to the cases this database holds [path]"
+  task :import_best_available, [:path] => :environment do |_task, args|
+    result = Questions::BestAvailableImporter.call(args[:path] || "tmp/best-available.jsonl.gz")
+    abort(result.errors.full_messages.to_sentence) unless result.success?
+
+    tally = result.payload
+    puts "creadas #{tally[:created]} · actualizadas #{tally[:updated]} · sin original #{tally[:missing]}"
+  end
+
+  desc "Write Modo ENARM's best-available-answer version of published questions (paid) " \
+       "[count]"
+  task :best_available, [:count] => :environment do |_task, args|
+    count = (args[:count] || 10).to_i
+    provider = Llm::Provider.for(:generator)
+    abort("Falta la clave del generador. Revisa .env") unless provider.configured?
+
+    run = GenerationRun.create!(
+      purpose: "best_available", provider: provider.name, model: provider.model, started_at: Time.current
+    )
+    pending = Question.originals.joins(:clinical_case).merge(ClinicalCase.status_published)
+                      .where.not(recommendation_id: nil).where(best_available_declined_at: nil)
+                      .where.missing(:best_available_variant)
+
+    tally = Hash.new(0)
+    pending.order("RANDOM()").limit(count).includes(:answer_options, :clinical_case, :recommendation).each do |question|
+      result = Questions::BestAvailableWriter.call(question, run: run)
+      outcome = if result.failure? then :failed
+      elsif result.payload[:variant] then :written
+      else :declined
+      end
+      tally[outcome] += 1
+      puts "pregunta #{question.id}: #{outcome == :failed ? result.errors.full_messages.first : outcome}"
+    end
+
+    run.update!(status: "completed", finished_at: Time.current)
+    puts "\nescritas=#{tally[:written]} sin_opcion_defendible=#{tally[:declined]} fallidas=#{tally[:failed]} " \
+         "tokens=#{run.total_tokens} costo=$#{run.cost_usd.to_f.round(4)}"
   end
 
   desc "The whole bank, in chunks: generate, back up, verify, publish, to a dollar cap. Totals are per label, " \

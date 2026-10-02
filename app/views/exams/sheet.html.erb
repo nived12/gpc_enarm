@@ -9,51 +9,10 @@
       progress_label: render("exams/answered", exam: @exam, answered: answered),
       progress: answered.fdiv(@exam.question_count) %>
 
-<%= render "exams/confidence_legend" %>
-
-<% exam_questions.chunk_while { |a, b| a.clinical_case_id == b.clinical_case_id }.each do |group| %>
-  <% clinical_case = group.first.clinical_case %>
-  <section class="mt-12 border-t border-line pt-10 first-of-type:border-0 first-of-type:pt-0" lang="<%= clinical_case.locale %>">
-    <p class="eyebrow" lang="<%= I18n.locale %>">
-      <%= group.one? ? t("exams.sheet.case_label_one", number: group.first.position) : t("exams.sheet.case_label", first: group.first.position, last: group.last.position) %>
-    </p>
-    <p class="vignette mt-3 text-ink"><%= clinical_case.stem %></p>
-    <% if clinical_case.clinical_image&.file&.attached? %>
-      <%= render "shared/figure", image: clinical_case.clinical_image, spacing: "mt-6" %>
-    <% end %>
-
-    <% group.each do |exam_question| %>
-      <article id="<%= dom_id(exam_question) %>" class="mt-10 scroll-mt-44">
-        <h2 class="flex gap-3 text-base font-medium leading-relaxed text-ink">
-          <span class="numeric shrink-0 text-ink-faint"><%= exam_question.position %>.</span>
-          <span><%= exam_question.question.text %></span>
-        </h2>
-
-        <%= form_with url: exam_question_answer_path(@exam, exam_question.position), method: :post, class: "mt-4",
-              data: { controller: "autosave", action: "change->autosave#save" } do %>
-          <fieldset>
-            <legend class="sr-only"><%= t("exams.question.choose") %></legend>
-            <div class="space-y-2">
-              <% exam_question.answer_options.each_with_index do |option, index| %>
-                <label class="flex min-h-11 cursor-pointer items-start gap-4 rounded-card border border-line bg-surface px-5 py-3 text-sm leading-relaxed transition-colors hover:border-accent has-checked:border-accent has-checked:bg-accent-soft">
-                  <%= radio_button_tag :answer_option_id, option.id, exam_question.answer&.answer_option_id == option.id,
-                        id: dom_id(option, exam_question.id), class: "mt-1 size-4 shrink-0 accent-accent" %>
-                  <span class="numeric mt-px w-4 shrink-0 font-medium text-ink-faint"><%= option_letter(index) %></span>
-                  <span class="text-ink"><%= option.text %></span>
-                </label>
-              <% end %>
-            </div>
-          </fieldset>
-          <%# Beside the saved note, right-aligned: there when wanted, never in the way. %>
-          <div class="mt-1 flex items-center justify-between gap-3" lang="<%= I18n.locale %>">
-            <p id="<%= dom_id(exam_question, :saved) %>" class="min-h-5 text-xs text-ink-faint" aria-live="polite"></p>
-            <%= render "exam_questions/confidence", exam_question: exam_question, answer: exam_question.answer, compact: true %>
-          </div>
-          <noscript><%= button_tag t("exams.sheet.save"), class: "btn btn--ghost mt-3" %></noscript>
-        <% end %>
-      </article>
-    <% end %>
-  </section>
+<% if @exam.enarm_mode? %>
+  <%= render "exams/booklet", exam: @exam, exam_questions: exam_questions %>
+<% else %>
+  <%= render "exams/pages", exam: @exam, exam_questions: exam_questions %>
 <% end %>
 
 <div class="mt-16 border-t border-line pt-8 text-center">

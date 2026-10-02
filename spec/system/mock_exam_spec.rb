@@ -10,10 +10,11 @@ RSpec.describe "Simulacro ENARM", type: :system do
     create(:published_case, questions_count: 1)
   end
 
-  def start_mock_exam
+  def start_mock_exam(enarm_mode: false)
     sign_in_as(student)
     click_link I18n.t("home.dashboard.mock_exam")
     expect(page).to have_no_text(I18n.t("exams.new.sections.custom.title"))
+    uncheck I18n.t("exams.new.mock.enarm_mode.label"), allow_label_click: true unless enarm_mode
     click_button I18n.t("exams.new.mock.submit")
     expect(page).to have_text(I18n.t("exams.sheet.answered", answered: 0, total: 3))
   end
@@ -29,7 +30,11 @@ RSpec.describe "Simulacro ENARM", type: :system do
     within(all("article").first) { find("label", text: "Radiografía de tórax").click }
     expect(page).to have_text(I18n.t("exams.sheet.answered", answered: 2, total: 3))
     within(all("article").last) { find("label", text: "Electrocardiograma de 12 derivaciones").click }
-    within(all("article").last) { expect(page).to have_text(I18n.t("exams.sheet.saved")) }
+    # The note from the first save is already on screen, so wait for the change itself.
+    answer = Exam.last.exam_questions.find_by!(position: 3).answer
+    Timeout.timeout(Capybara.default_max_wait_time) do
+      sleep 0.05 until answer.reload.answer_option.text.start_with?("Electro")
+    end
 
     visit current_path
     within(all("article").last) do
@@ -59,6 +64,38 @@ RSpec.describe "Simulacro ENARM", type: :system do
     visit current_path
     within(all("article").first) { expect(page).to have_checked_field("confidence", with: "sure", visible: :all) }
     expect_no_sideways_scroll
+  end
+
+  # Modo ENARM: the booklet prints the options as text and the answers go on the sheet,
+  # which on a phone opens over the booklet and closes back to it.
+  def bubble(number, letter)
+    find("[aria-label='#{I18n.t("exams.booklet.bubble", number: number, letter: letter)}']", visible: :all).find(
+      :xpath, ".."
+    )
+  end
+
+  it "reads the booklet and marks the answer sheet, as the real sitting does", viewport: :phone do
+    start_mock_exam(enarm_mode: true)
+    expect(page).to have_css("article", count: 3)
+    expect(page).to have_no_css("article input[type=radio]", visible: :all)
+    expect_no_sideways_scroll
+
+    click_button I18n.t("exams.booklet.open_sheet")
+    expect(page).to have_css("[role=dialog][aria-modal=true]")
+    bubble(3, "A").click
+    expect(page).to have_text(I18n.t("exams.sheet.answered", answered: 1, total: 3))
+    answer = Exam.last.exam_questions.find_by!(position: 3).answer
+    first_choice = answer.answer_option_id
+    bubble(3, "B").click
+    Timeout.timeout(Capybara.default_max_wait_time) { sleep 0.05 until answer.reload.answer_option_id != first_choice }
+    page.send_keys(:escape)
+    expect(page).to have_no_css("[role=dialog]")
+    expect(page).to have_button(I18n.t("exams.booklet.open_sheet"), focused: true)
+
+    visit current_path
+    click_button I18n.t("exams.booklet.open_sheet")
+    expect(bubble(3, "B").find("input", visible: :all)).to be_checked
+    expect(Exam.last).to be_enarm_mode.and be_feedback_at_end
   end
 
   it "ends the sitting by itself when the clock reaches zero" do
