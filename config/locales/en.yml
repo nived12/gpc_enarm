@@ -139,6 +139,9 @@ en:
       mock:
         length: "Length"
         submit: "Start mock exam"
+        enarm_mode:
+          label: "ENARM mode"
+          hint: "Like the real exam: you read the booklet and mark each answer on a separate sheet. Explanations come at the end."
         real_conditions: "Like ENARM day: the real exam's difficulty mix (a quarter low, half medium, a quarter high) when the bank allows it, and with a clock, a single time warning 20 minutes before the end."
         imperfect_options: "On the real exam the ideal answer is sometimes not among the options. Then there is no point looking for it: choose the best of those offered."
       custom:
@@ -186,6 +189,11 @@ en:
       finish: "Finish exam"
       finish_hint: "You can go back to any question and change your answer until you finish."
       confirm_finish: "Finish the exam? Unanswered questions count as wrong."
+    booklet:
+      answer_sheet: "Answer sheet"
+      open_sheet: "Answer sheet"
+      close_sheet: "Back to the booklet"
+      bubble: "Question %{number}, option %{letter}"
     finish:
       title: "You answered everything"
       body:

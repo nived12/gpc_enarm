@@ -171,7 +171,10 @@ class Exam < ApplicationRecord
 
   # What analytics reports about a sitting, at the start and again at the end.
   def usage_properties
-    { mode: mode, question_count: question_count, feedback_timing: feedback_timing, timed: !time_limit_seconds.nil? }
+    {
+      mode: mode, question_count: question_count, feedback_timing: feedback_timing, timed: !time_limit_seconds.nil?,
+      enarm_mode: enarm_mode
+    }
   end
 
   private

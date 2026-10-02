@@ -119,7 +119,8 @@ RSpec.describe "Usage analytics", type: :request do
 
       expect(Analytics).to have_received(:capture).with(
         student, "exam_started",
-        mode: "quick_quiz", question_count: 2, feedback_timing: "after_each", timed: false, from_study_plan: false
+        mode: "quick_quiz", question_count: 2, feedback_timing: "after_each", timed: false, enarm_mode: false,
+        from_study_plan: false
       )
 
       question = exam.exam_questions.first.question
@@ -131,7 +132,7 @@ RSpec.describe "Usage analytics", type: :request do
 
       expect(Analytics).to have_received(:capture).with(
         exam.user, "exam_finished",
-        mode: "quick_quiz", question_count: 2, feedback_timing: "after_each", timed: false,
+        mode: "quick_quiz", question_count: 2, feedback_timing: "after_each", timed: false, enarm_mode: false,
         answered: 1, score: 50.0, minutes: 3, ran_out_of_time: false
       ).once
     end

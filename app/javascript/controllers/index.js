@@ -11,6 +11,9 @@ application.register("timer", TimerController)
 import AutosaveController from "./autosave_controller"
 application.register("autosave", AutosaveController)
 
+import AnswerSheetController from "./answer_sheet_controller"
+application.register("answer-sheet", AnswerSheetController)
+
 import TopicPickerController from "./topic_picker_controller"
 application.register("topic-picker", TopicPickerController)
 

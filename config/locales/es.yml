@@ -141,6 +141,9 @@ es:
       mock:
         length: "Extensión"
         submit: "Empezar simulacro"
+        enarm_mode:
+          label: "Modo ENARM"
+          hint: "Como el examen real: lees el cuadernillo y marcas cada respuesta en una hoja aparte. Las explicaciones llegan al final."
         real_conditions: "Como el día del ENARM: la mezcla de dificultad del examen real (una cuarta parte baja, la mitad media y una cuarta parte alta) cuando el banco la permite, y con reloj, un solo aviso de tiempo a 20 minutos del final."
         imperfect_options: "En el examen real, a veces la respuesta ideal no aparece entre las opciones. Ahí no hay que buscarla: se elige la mejor de las que hay."
       custom:
@@ -188,6 +191,11 @@ es:
       finish: "Terminar examen"
       finish_hint: "Puedes volver a cualquier pregunta y cambiar tu respuesta hasta terminar."
       confirm_finish: "¿Terminar el examen? Las preguntas sin responder cuentan como error."
+    booklet:
+      answer_sheet: "Hoja de respuestas"
+      open_sheet: "Hoja de respuestas"
+      close_sheet: "Volver al cuadernillo"
+      bubble: "Pregunta %{number}, opción %{letter}"
     finish:
       title: "Respondiste todo"
       body:

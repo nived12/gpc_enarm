@@ -97,7 +97,7 @@ class ExamsController < ApplicationController
   end
 
   def setting_params
-    params.fetch(:settings, {}).permit(:feedback_timing, :seconds_per_question)
+    params.fetch(:settings, {}).permit(:feedback_timing, :seconds_per_question, :enarm_mode)
   end
 
   def filter_params

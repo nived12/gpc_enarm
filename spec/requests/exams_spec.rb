@@ -325,6 +325,22 @@ RSpec.describe "Exams", type: :request do
       expect(response.body).not_to include(%(id="final_warning_exam_))
     end
 
+    it "prints the booklet and an answer sheet in Modo ENARM, where a bubble saves like an option" do
+      post exams_path, params: { mode: "full_exam", settings: { enarm_mode: "1" } }
+      enarm = Exam.last
+
+      get exam_path(enarm)
+      expect(response.body).to include(
+        I18n.t("exams.booklet.answer_sheet"), I18n.t("exams.booklet.bubble", number: 3, letter: "D"), *cases.map(&:stem)
+      )
+      expect(response.body).not_to include(I18n.t("exams.confidence.levels.guess"))
+
+      exam_question = enarm.exam_questions.find_by!(position: 3)
+      post exam_question_answer_path(enarm, 3), headers: { "Accept" => "text/vnd.turbo-stream.html" },
+        params: { answer_option_id: exam_question.question.answer_options.first.id }
+      expect(response.body).to include(I18n.t("exams.sheet.answered", answered: 1, total: 3))
+    end
+
     it "saves each choice in place, in any order, and a change of mind replaces it" do
       choose(3, "Troponina I")
       expect(response.media_type).to eq("text/vnd.turbo-stream.html")

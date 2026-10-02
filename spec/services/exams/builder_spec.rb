@@ -150,6 +150,17 @@ RSpec.describe Exams::Builder do
     expect(exam).to have_attributes(feedback_timing: "after_each", seconds_per_question: nil, time_limit_seconds: nil)
   end
 
+  it "sits Modo ENARM only on an exam-length mode, with its answers read back at the end" do
+    create(:published_case, questions_count: 2)
+    settings = { enarm_mode: "1", feedback_timing: "after_each" }
+
+    mock = described_class.call(user: user, mode: "full_exam", settings: settings).payload[:exam]
+    quiz = described_class.call(user: user, mode: "custom", settings: settings).payload[:exam]
+
+    expect([mock.enarm_mode, mock.feedback_timing]).to eq([true, "at_end"])
+    expect([quiz.enarm_mode, quiz.feedback_timing]).to eq([false, "after_each"])
+  end
+
   it "falls back to the mode's timing for a value the form never offers" do
     create(:published_case)
 

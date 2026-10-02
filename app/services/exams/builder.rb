@@ -52,8 +52,16 @@ module Exams
     # Each mode has defaults; the student may change either. A missing or unknown value
     # falls back to the default rather than failing the exam.
     def feedback_timing
+      return "at_end" if enarm_mode?
+
       chosen = settings[:feedback_timing]
       Exam.feedback_timings.key?(chosen) ? chosen : Exam.default_feedback_timing(mode)
+    end
+
+    # The real sitting's booklet and answer sheet, which only a rehearsal of the whole
+    # exam offers. Its answers are read back at the end, as the real ones are.
+    def enarm_mode?
+      Exam::EXAM_LENGTH_MODES.include?(mode) && ActiveModel::Type::Boolean.new.cast(settings[:enarm_mode]) == true
     end
 
     # "" is the student choosing no clock at all, which is different from not saying.
@@ -219,7 +227,7 @@ module Exams
       Exam.transaction do
         exam = user.exams.create!(
           mode: mode, filters: filters, question_count: sequence.size,
-          feedback_timing: feedback_timing, seconds_per_question: pace,
+          feedback_timing: feedback_timing, seconds_per_question: pace, enarm_mode: enarm_mode?,
           time_limit_seconds: pace && (pace * sequence.size),
           started_at: Time.current, running_since: Time.current
         )
